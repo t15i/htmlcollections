@@ -1,0 +1,60 @@
+{
+  "name": "@gmvrpw/lib-typescript-template",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "",
+  "keywords": [],
+  "author": "Aleksandr Boiarnikov <dev@gmvr.pw> (https://gmvr.pw)",
+  "license": "MIT",
+  "homepage": "https://github.com/t15i/lib-typescript-template#README",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/t15i/lib-typescript-template.git"
+  },
+  "bugs": {
+    "url": "https://github.com/t15i/lib-typescript-template/issues"
+  },
+  "unpkg": "./dist/cdn/index.min.js",
+  "jsdelivr": "./dist/cdn/index.min.js",
+  "exports": {
+    "types": "./dist/types/index.d.ts",
+    "import": "./dist/lib/index.js",
+    "default": "./dist/lib/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "lint": "eslint lib test",
+    "format": "prettier --check --write lib test",
+    "typecheck": "tsc -p lib/tsconfig.json && tsc -p test/tsconfig.json",
+    "test": "vitest watch --coverage",
+    "build": "vite build",
+    "ci:lint": "eslint --max-warnings 1 lib test",
+    "ci:lint:lib": "eslint --max-warnings 1 lib",
+    "ci:lint:tests": "eslint --max-warnings 1 test",
+    "ci:format": "prettier --list-different lib test",
+    "ci:format:lib": "prettier --list-different lib",
+    "ci:format:tests": "prettier --list-different tests",
+    "ci:typecheck": "npm run ci:typecheck:lib && npm run ci:typecheck:tests",
+    "ci:typecheck:lib": "tsc -p lib/tsconfig.json",
+    "ci:typecheck:tests": "tsc -p test/tsconfig.json",
+    "ci:test": "npx playwright install && vitest run --coverage --browser.headless",
+    "ci:build": "vite build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@vitest/browser-playwright": "^4.1.4",
+    "@vitest/coverage-istanbul": "^4.1.4",
+    "eslint": "^10.2.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-tsdoc": "^0.5.2",
+    "playwright": "^1.59.1",
+    "prettier": "^3.8.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.58.1",
+    "vite": "^8.0.8",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^4.1.4"
+  }
+}

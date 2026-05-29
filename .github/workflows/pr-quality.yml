@@ -1,0 +1,32 @@
+name: "PR Code Quality Check"
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: main
+  merge_group:
+    types: checks_requested
+permissions:
+  contents: read
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      lib-changed: ${{ steps.changes.outputs.lib }}
+      tests-changed: ${{ steps.changes.outputs.tests }}
+    steps:
+      - id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            lib:
+              - 'lib/**/*'
+            tests:
+              - 'test/**/*'
+  check:
+    needs: changes
+    uses: t15i/workflows/.github/workflows/nodejs-lib-check.yml@main
+    with:
+      ref: ${{ github.sha }}
+      check-lib: ${{ needs.changes.outputs.lib-changed == 'true' }}
+      check-tests: ${{ needs.changes.outputs.tests-changed == 'true' }}
+      check-types: true

@@ -1,0 +1,11 @@
+name: "Release"
+on: workflow_dispatch
+jobs:
+  draft:
+    uses: t15i/workflows/.github/workflows/nodejs-lib-release-draft.yml@main
+    with: 
+      target: ${{ github.event.repository.default_branch }}
+      semver-bump-labels: breaking.feature.fix
+    permissions:
+      contents: write
+
