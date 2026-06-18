@@ -13,7 +13,6 @@ import { playwright } from "@vitest/browser-playwright";
 export default {
   plugins: [
     babel({
-      apply: "serve",
       enforce: "pre",
       include: /\.tsx?$/,
       babelConfig: {
