@@ -12,7 +12,6 @@
 
     "composite": true,
     "verbatimModuleSyntax": true,
-    "isolatedDeclarations": true,
     "isolatedModules": true,
 
     "target": "esnext",

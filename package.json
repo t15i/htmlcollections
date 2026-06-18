@@ -1,21 +1,19 @@
 {
-  "name": "@gmvrpw/lib-typescript-template",
+  "name": "htmlcollections",
   "type": "module",
   "version": "0.0.0",
-  "description": "",
-  "keywords": [],
+  "description": "A collection of HTMLCollection implementations.",
+  "keywords": ["htmlcollection", "dom", "html", "collections"],
   "author": "Aleksandr Boiarnikov <dev@gmvr.pw> (https://gmvr.pw)",
   "license": "MIT",
-  "homepage": "https://github.com/t15i/lib-typescript-template#README",
+  "homepage": "https://github.com/t15i/htmlcollections#README",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/t15i/lib-typescript-template.git"
+    "url": "git+https://github.com/t15i/htmlcollections.git"
   },
   "bugs": {
-    "url": "https://github.com/t15i/lib-typescript-template/issues"
+    "url": "https://github.com/t15i/htmlcollections/issues"
   },
-  "unpkg": "./dist/cdn/index.min.js",
-  "jsdelivr": "./dist/cdn/index.min.js",
   "exports": {
     "types": "./dist/types/index.d.ts",
     "import": "./dist/lib/index.js",
@@ -43,7 +41,12 @@
     "ci:build": "vite build"
   },
   "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@babel/plugin-proposal-decorators": "^7.29.7",
+    "@babel/plugin-transform-typescript": "^7.29.7",
     "@eslint/js": "^10.0.1",
+    "@t15i/webidl-decorators": "^1.0.0",
+    "@t15i/webspecs": "^0.7.0",
     "@vitest/browser-playwright": "^4.1.4",
     "@vitest/coverage-istanbul": "^4.1.4",
     "eslint": "^10.2.0",
@@ -54,7 +57,12 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.58.1",
     "vite": "^8.0.8",
+    "vite-plugin-babel": "^1.7.3",
     "vite-plugin-dts": "^4.5.4",
     "vitest": "^4.1.4"
+  },
+  "peerDependencies": {
+    "@t15i/webidl-decorators": "^1.0.0",
+    "@t15i/webspecs": "^0.7.0"
   }
 }
