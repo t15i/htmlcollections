@@ -1,9 +1,14 @@
 {
   "name": "htmlcollections",
   "type": "module",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "A collection of HTMLCollection implementations.",
-  "keywords": ["htmlcollection", "dom", "html", "collections"],
+  "keywords": [
+    "htmlcollection",
+    "dom",
+    "html",
+    "collections"
+  ],
   "author": "Aleksandr Boiarnikov <dev@gmvr.pw> (https://gmvr.pw)",
   "license": "MIT",
   "homepage": "https://github.com/t15i/htmlcollections#README",
