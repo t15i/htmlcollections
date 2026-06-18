@@ -108,10 +108,7 @@ list.items.namedItem("champion");  // <div id="champion">
 ## Extending
 
 Every part of `BlinklikeHTMLCollection` is exposed, so you can plug the backing
-store and the supported-property views into your own
-[`@Interface`](https://github.com/t15i/webidl-decorators#usage) class. Below is
-a typed `HTMLOptionsCollection`-style variant that constrains members to
-`HTMLOptionElement`:
+store and the supported-property views into your own `DerivedHTMLCollection` class:
 
 ```ts
 import { Attribute, Interface } from "@t15i/webidl-decorators";
