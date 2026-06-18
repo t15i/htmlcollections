@@ -5,18 +5,12 @@ lib:
         - 'lib/**/*'
 
 feature:
-  - all:
-    - changed-files: 
-      - any-glob-to-any-file:
-        - 'lib/**/*'
+  - any:
     - head-branch:
       - '^feature'
 
 fix:
-  - all:
-    - changed-files: 
-      - any-glob-to-any-file:
-        - 'lib/**/*'
+  - any:
     - head-branch:
       - '^fix'
 

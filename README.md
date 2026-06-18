@@ -1,49 +1,153 @@
-# lib-typescript-template
+# htmlcollections — a collection of HTMLCollection implementations
 
-> **Warning!** You may use this template as a general reference for 
-structuring and configuring your repository, but please do **not** use it as 
-a GitHub template outside of this organization. This repository includes 
-automation that depends on this organization’s reusable workflows, 
-which *may* and *will* change at any time without prior notice.
+A small toolkit for building [WebIDL](https://webidl.spec.whatwg.org/)-conformant
+[`HTMLCollection`](https://dom.spec.whatwg.org/#interface-htmlcollection)
+variants powered by [`@t15i/webspecs`](https://github.com/t15i/webspecs) and
+[`@t15i/webidl-decorators`](https://github.com/t15i/webidl-decorators).
 
-## Features
+> **Heads up!** These collections use **push** semantics — membership is
+> managed by the caller through `insertAfter` and `remove`. The primary
+> intended use case is the
+> [Web Components API](https://developer.mozilla.org/docs/Web/API/Web_components),
+> whose lifecycle callbacks (`connectedCallback`, `disconnectedCallback`) give
+> each element a natural place to register or deregister itself with the
+> owning collection.
+>
+> Once membership is set, *attribute*-level observation (id and name changes
+> on existing members) is handled for you.
 
-This repository contains a template for TypeScript libraries.
+> The decorator proposal used is the
+> [TC39 stage-3 / 2023-11](https://github.com/tc39/proposal-decorators) variant.
+> Make sure your toolchain supports it.
 
-Template provides:
+## Install
 
-1. **TypeScript development** with enforced best practices, including:
-   - strict mode;
-   - composite;
-   - verbatim syntax;
-   - separation of library code and tests, connected via [project references](https://www.typescriptlang.org/tsconfig#references);
-   - and more (see `tsconfig.json` and [tsconfig reference](https://www.typescriptlang.org/tsconfig/));
+```sh
+npm install htmlcollections
+```
 
-2. **Code linting** with [Eslint](https://eslint.org/) and [typescript-eslint](https://typescript-eslint.io/);
+## Usage
 
-3. **Code formatting** with [Prettier](https://prettier.io/);
+### Wire it into a Web Component
 
-4. **Testing**, including browser mode, with [Vitest](https://vitest.dev/);
+The intended pattern is to instantiate a `BlinklikeHTMLCollectionData` rooted
+on the custom element itself, wrap it in a `BlinklikeHTMLCollection`, and
+maintain membership from the element's lifecycle:
 
-5. **Build tooling** with [Vite](https://vite.dev/), producing the following artifacts:
-   - type declarations;
-   - minified IIFE bundle for [unpkg](https://unpkg.com/) and [jsDelivr](https://www.jsdelivr.com/);
-   - unminified ES code for development;
+```ts
+import {
+  BlinklikeHTMLCollection,
+  BlinklikeHTMLCollectionData,
+} from "htmlcollections";
 
-6. **Automated checks** for pull requests and merge queue;
+class HTMLCustomListElement extends HTMLElement {
+  data_ = new BlinklikeHTMLCollectionData(this);
+  #coll = new BlinklikeHTMLCollection(this.#data);
 
-7. **Automated release pipeline** for npm that automatically bumps the version according to SemVer.
+  get items(): HTMLCollection {
+    return this.#coll;
+  }
+}
 
-## Post-creation TODO:
+class HTMLCustomItemElement extends HTMLElement {
+  #list: HTMLCustomListElement | null = null
 
-Please make sure to:
+  connectedCallback() {
+    this.#list = getClosestListElement(this)
+    if (this.#list) {
+      this.#list.data_.insertAfter(this, getPreviousItemElement(this))
+    }
+  }
 
-* [ ] Change all occurrences of `lib-typescript-template` in `package.json`, 
-`package-lock.json`, and `vite.config.js` with the name of your repository;
+  disconnectedCallback() {
+    if (this.#list) {
+      this.#list.data_.remove(this)
+    }
+    this.#list = null
+  }
+}
 
-* [ ] Change the name, author, license, description, and keywords 
-in `package.json`;
+customElements.define("custom-list", HTMLCustomListElement);
+customElements.define("custom-item", HTMLCustomItemElement);
+```
 
-* [ ] Change this `README.md`;
+```ts
+const list = document.createElement("custom-list");
+list.innerHTML = `<custom-item id="a"></custom-item><custom-item id="b"></custom-item>`;
+document.body.append(list);
 
-Happy hacking!
+list.items.length;          // 2
+list.items.item(0);         // <div id="a">
+list.items.namedItem("b");  // <div id="b">
+[...list.items];            // [<div id="a">, <div id="b">]
+```
+
+### Live id/name lookups
+
+Once an element is a member, named access — `namedItem(name)`, `coll[name]`,
+and `name in coll` — follows `id` and `name` attribute mutations through a
+single `MutationObserver` rooted on the element you passed to
+`BlinklikeHTMLCollectionData`. Reads synchronously drain pending observer
+records, so callers never see stale state:
+
+```ts
+const el = document.createElement("div");
+el.id = "hero";
+list.append(el);
+
+list.items.namedItem("hero");      // <div id="hero">
+list.items["hero"];                // <div id="hero">
+
+el.id = "champion";
+
+list.items.namedItem("hero");      // null
+list.items.namedItem("champion");  // <div id="champion">
+"champion" in list.items;          // true
+```
+
+## Extending
+
+Every part of `BlinklikeHTMLCollection` is exposed, so you can plug the backing
+store and the supported-property views into your own
+[`@Interface`](https://github.com/t15i/webidl-decorators#usage) class. Below is
+a typed `HTMLOptionsCollection`-style variant that constrains members to
+`HTMLOptionElement`:
+
+```ts
+import { Attribute, Interface } from "@t15i/webidl-decorators";
+import { UnsignedLong } from "@t15i/webspecs/webidl";
+import { BlinklikeHTMLCollectionData } from "htmlcollections";
+
+interface DerivedHTMLCollectionInternals extends BlinklikeHTMLCollectionInternals {
+  // ...
+}
+
+@Interface
+class DerivedHTMLCollection extends BlinklikeHTMLCollection {
+  declare [Internals]: DerivedHTMLCollectionInternals;
+
+  constructor(data: BlinklikeHTMLCollectionData) {
+    super(data)
+    // this[Internals] ... 
+  }
+
+  @Attribute(UnsignedLong)
+  get length(): number {
+    return this[Internals].data.length;
+  }
+  
+  @Attribute(UnsignedLong)
+  set length(value: number) {
+    // ...
+  }
+}
+```
+
+`@t15i/webspecs/webidl` provides the WebIDL type wrappers (`Nullable`, `Type`, `UnsignedLong`, ...)
+used in the decorator signatures.
+`@t15i/webidl-decorators` provides decorator API over `@t15i/webspecs/webidl` for the 
+platform-object semantics
+
+## License
+
+[MIT](./LICENSE)
