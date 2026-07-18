@@ -1,4 +1,4 @@
-import type { ElementLinkedList } from "../ElementLinkedList";
+import type { ElementLinkedList } from "@/ElementLinkedList";
 
 /**
  * Lazy items vector with a single-position fallback for indexed access.

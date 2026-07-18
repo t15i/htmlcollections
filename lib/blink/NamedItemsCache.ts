@@ -1,5 +1,5 @@
 import { HTMLNamespace } from "@t15i/webspecs/infra";
-import type { ElementLinkedList } from "../ElementLinkedList";
+import type { ElementLinkedList } from "@/ElementLinkedList";
 
 /**
  * Reads the `name` attribute of `element` if it is in the HTML namespace,

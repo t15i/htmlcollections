@@ -3,6 +3,9 @@
   "include": ["./**/*"],
   "compilerOptions": {
     "rootDir": ".",
-    "outDir": "../build/lib"
+    "outDir": "../build/lib",
+    "paths": {
+      "@/*": ["./*"]
+    }
   }
 }

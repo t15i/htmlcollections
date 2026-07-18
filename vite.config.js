@@ -27,7 +27,7 @@ export default {
     }),
     dts({
       tsconfigPath: "./lib/tsconfig.json",
-      outDir: "./dist/types",
+      outDirs: "./dist/types",
     }),
   ],
   resolve: {
