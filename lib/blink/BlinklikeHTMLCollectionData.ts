@@ -1,5 +1,5 @@
 import { IndexedItemsCache } from "./IndexedItemsCache";
-import { ElementLinkedList } from "../ElementLinkedList";
+import { ElementLinkedList } from "@/ElementLinkedList";
 import { getNameAttribute, NamedItemsCache } from "./NamedItemsCache";
 
 /**
