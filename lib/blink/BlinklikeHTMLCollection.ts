@@ -1,6 +1,7 @@
-import { Nullable, Type, UnsignedLong } from "@t15i/webspecs/webidl";
+import { InterfaceType, Nullable, UnsignedLong } from "@t15i/webidl-types";
 import {
   Attribute,
+  Exposed,
   IndexedPropertyGetter,
   Interface,
   Internals,
@@ -13,7 +14,7 @@ import { BlinklikeHTMLCollectionData } from "./BlinklikeHTMLCollectionData";
 import { BlinklikeHTMLCollectionSupportedPropertyIndices } from "./BlinklikeHTMLCollectionSupportedPropertyIndices";
 import { BlinklikeHTMLCollectionSupportedPropertyNames } from "./BlinklikeHTMLCollectionSupportedPropertyNames";
 
-export const NullableElement = Nullable(Type(Element));
+export const NullableElement = Nullable(InterfaceType(Element));
 
 export interface BlinklikeHTMLCollectionInternals {
   data: BlinklikeHTMLCollectionData;
@@ -27,7 +28,8 @@ export interface BlinklikeHTMLCollectionInternals {
  *
  * @see https://dom.spec.whatwg.org/#interface-htmlcollection
  */
-@Interface
+@Exposed("Window")
+@Interface("HTMLCollection")
 export class BlinklikeHTMLCollection implements HTMLCollection {
   /** @internal */
   [Internals]: BlinklikeHTMLCollectionInternals;

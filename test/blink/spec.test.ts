@@ -27,7 +27,7 @@ describe("WebIDL spec conformance smoke tests", () => {
       (s.coll.item as any).call(s.coll),
     ).toThrow(
       new TypeError(
-        "Failed to execute 'item' on 'BlinklikeHTMLCollection': 1 argument required, but only 0 present.",
+        "Failed to execute 'item' on 'HTMLCollection': 1 argument required, but only 0 present.",
       ),
     );
     expect(() =>
@@ -35,7 +35,7 @@ describe("WebIDL spec conformance smoke tests", () => {
       (s.coll.namedItem as any).call(s.coll),
     ).toThrow(
       new TypeError(
-        "Failed to execute 'namedItem' on 'BlinklikeHTMLCollection': 1 argument required, but only 0 present.",
+        "Failed to execute 'namedItem' on 'HTMLCollection': 1 argument required, but only 0 present.",
       ),
     );
   });
