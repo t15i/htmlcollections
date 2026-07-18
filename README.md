@@ -2,8 +2,10 @@
 
 A small toolkit for building [WebIDL](https://webidl.spec.whatwg.org/)-conformant
 [`HTMLCollection`](https://dom.spec.whatwg.org/#interface-htmlcollection)
-variants powered by [`@t15i/webspecs`](https://github.com/t15i/webspecs) and
-[`@t15i/webidl-decorators`](https://github.com/t15i/webidl-decorators).
+variants powered by
+[`@t15i/webidl-decorators`](https://github.com/t15i/webidl-decorators),
+[`@t15i/webidl-types`](https://github.com/t15i/webidl-types), and
+[`@t15i/webspecs`](https://github.com/t15i/webspecs).
 
 > **Heads up!** These collections use **push** semantics — membership is
 > managed by the caller through `insertAfter` and `remove`. The primary
@@ -42,7 +44,7 @@ import {
 
 class HTMLCustomListElement extends HTMLElement {
   data_ = new BlinklikeHTMLCollectionData(this);
-  #coll = new BlinklikeHTMLCollection(this.#data);
+  #coll = new BlinklikeHTMLCollection(this.data_);
 
   get items(): HTMLCollection {
     return this.#coll;
@@ -111,39 +113,57 @@ Every part of `BlinklikeHTMLCollection` is exposed, so you can plug the backing
 store and the supported-property views into your own `DerivedHTMLCollection` class:
 
 ```ts
-import { Attribute, Interface } from "@t15i/webidl-decorators";
-import { UnsignedLong } from "@t15i/webspecs/webidl";
-import { BlinklikeHTMLCollectionData } from "htmlcollections";
+import {
+  Attribute,
+  Exposed,
+  Interface,
+  Internals,
+} from "@t15i/webidl-decorators";
+import { UnsignedLong } from "@t15i/webidl-types";
+import {
+  BlinklikeHTMLCollection,
+  BlinklikeHTMLCollectionData,
+  type BlinklikeHTMLCollectionInternals,
+} from "htmlcollections";
 
-interface DerivedHTMLCollectionInternals extends BlinklikeHTMLCollectionInternals {
+interface DerivedHTMLCollectionInternals
+  extends BlinklikeHTMLCollectionInternals {
   // ...
 }
 
+@Exposed("Window")
 @Interface
 class DerivedHTMLCollection extends BlinklikeHTMLCollection {
+  /** @internal */
   declare [Internals]: DerivedHTMLCollectionInternals;
 
   constructor(data: BlinklikeHTMLCollectionData) {
-    super(data)
-    // this[Internals] ... 
+    super(data);
+    // this[Internals] ...
   }
 
   @Attribute(UnsignedLong)
-  get length(): number {
+  override get length(): number {
     return this[Internals].data.length;
   }
-  
+
   @Attribute(UnsignedLong)
-  set length(value: number) {
+  override set length(value: number) {
     // ...
   }
 }
 ```
 
-`@t15i/webspecs/webidl` provides the WebIDL type wrappers (`Nullable`, `Type`, `UnsignedLong`, ...)
-used in the decorator signatures.
-`@t15i/webidl-decorators` provides decorator API over `@t15i/webspecs/webidl` for the 
-platform-object semantics
+`@t15i/webidl-types` provides the WebIDL type wrappers (`Nullable`,
+`InterfaceType`, `UnsignedLong`, …) you pass to the decorators.
+`@t15i/webidl-decorators` provides the decorator API, and `@t15i/webspecs`
+provides the runtime platform-object semantics behind it.
+
+Every interface must declare where it is exposed: `@Exposed("Window")` is
+applied _outside_ `@Interface` and is required — an interface that is never
+exposed is rejected when `@Interface` finalizes it. `@Interface` uses the class
+name as the WebIDL identifier by default, or you can pass one explicitly, e.g.
+`@Interface("HTMLCollection")` (as `BlinklikeHTMLCollection` does).
 
 ## License
 
