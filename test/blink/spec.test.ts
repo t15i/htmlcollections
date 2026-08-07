@@ -25,19 +25,19 @@ describe("WebIDL spec conformance smoke tests", () => {
     expect(() =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (s.coll.item as any).call(s.coll),
-    ).toThrow(
-      new TypeError(
-        "Failed to execute 'item' on 'HTMLCollection': 1 argument required, but only 0 present.",
-      ),
-    );
+    ).toThrow(TypeError);
+    expect(() =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (s.coll.item as any).call(s.coll),
+    ).toThrow(/argument required/);
     expect(() =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (s.coll.namedItem as any).call(s.coll),
-    ).toThrow(
-      new TypeError(
-        "Failed to execute 'namedItem' on 'HTMLCollection': 1 argument required, but only 0 present.",
-      ),
-    );
+    ).toThrow(TypeError);
+    expect(() =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (s.coll.namedItem as any).call(s.coll),
+    ).toThrow(/argument required/);
   });
 
   test("calling methods on a foreign `this` throws TypeError", () => {

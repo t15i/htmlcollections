@@ -1,20 +1,26 @@
-import { InterfaceType, Nullable, UnsignedLong } from "@t15i/webidl-types";
+import {
+  DOMString,
+  InterfaceType,
+  Nullable,
+  UnsignedLong,
+} from "@t15i/webidl-types";
 import {
   Attribute,
   Exposed,
-  IndexedPropertyGetter,
+  Getter,
+  Operation,
   Interface,
   Internals,
-  NamedPropertyGetter,
   SupportedPropertyIndices,
   SupportedPropertyNames,
+  Constructor,
 } from "@t15i/webidl-decorators";
 
 import { BlinklikeHTMLCollectionData } from "./BlinklikeHTMLCollectionData";
 import { BlinklikeHTMLCollectionSupportedPropertyIndices } from "./BlinklikeHTMLCollectionSupportedPropertyIndices";
 import { BlinklikeHTMLCollectionSupportedPropertyNames } from "./BlinklikeHTMLCollectionSupportedPropertyNames";
 
-export const NullableElement = Nullable(InterfaceType(Element));
+const NullableElement = Nullable(InterfaceType(Element));
 
 export interface BlinklikeHTMLCollectionInternals {
   data: BlinklikeHTMLCollectionData;
@@ -30,7 +36,10 @@ export interface BlinklikeHTMLCollectionInternals {
  */
 @Exposed("Window")
 @Interface("HTMLCollection")
+@Constructor([InterfaceType(BlinklikeHTMLCollectionData)])
 export class BlinklikeHTMLCollection implements HTMLCollection {
+  declare [Symbol.iterator]: (typeof Array.prototype)[typeof Symbol.iterator];
+
   /** @internal */
   [Internals]: BlinklikeHTMLCollectionInternals;
 
@@ -52,18 +61,16 @@ export class BlinklikeHTMLCollection implements HTMLCollection {
     return this[Internals].data.length;
   }
 
-  @IndexedPropertyGetter(NullableElement)
+  @Getter
+  @Operation(NullableElement, [UnsignedLong])
   item(index: number) {
     return this[Internals].data.item(index);
   }
 
-  @NamedPropertyGetter(NullableElement)
+  @Getter
+  @Operation(NullableElement, [DOMString])
   namedItem(name: string) {
     return this[Internals].data.namedItem(name);
-  }
-
-  [Symbol.iterator]() {
-    return this[Internals].data[Symbol.iterator]();
   }
 
   @SupportedPropertyIndices
