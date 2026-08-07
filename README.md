@@ -28,6 +28,13 @@ variants powered by
 npm install htmlcollections
 ```
 
+Install with peer dependencies if your package manager does not do so
+automatically:
+
+```sh
+npm install htmlcollections @t15i/webidl-decorators @t15i/webidl-types @t15i/webspecs
+```
+
 ## Usage
 
 ### Wire it into a Web Component
@@ -115,11 +122,12 @@ store and the supported-property views into your own `DerivedHTMLCollection` cla
 ```ts
 import {
   Attribute,
+  Constructor,
   Exposed,
   Interface,
   Internals,
 } from "@t15i/webidl-decorators";
-import { UnsignedLong } from "@t15i/webidl-types";
+import { InterfaceType, UnsignedLong } from "@t15i/webidl-types";
 import {
   BlinklikeHTMLCollection,
   BlinklikeHTMLCollectionData,
@@ -133,6 +141,7 @@ interface DerivedHTMLCollectionInternals
 
 @Exposed("Window")
 @Interface
+@Constructor([InterfaceType(BlinklikeHTMLCollectionData)])
 class DerivedHTMLCollection extends BlinklikeHTMLCollection {
   /** @internal */
   declare [Internals]: DerivedHTMLCollectionInternals;
@@ -164,6 +173,18 @@ applied _outside_ `@Interface` and is required — an interface that is never
 exposed is rejected when `@Interface` finalizes it. `@Interface` uses the class
 name as the WebIDL identifier by default, or you can pass one explicitly, e.g.
 `@Interface("HTMLCollection")` (as `BlinklikeHTMLCollection` does).
+
+Operations and special operations follow the same model
+`BlinklikeHTMLCollection` uses. A plain operation is
+`@Operation(returnType, [argTypes])`; an indexed or named getter stacks
+`@Getter` on top of it (with `@Setter`/`@Deleter` as the other special
+operations), and whether it acts on indexed or named properties is inferred from
+the first argument type — `UnsignedLong` for `item(index)`, `DOMString` for
+`namedItem(name)`. A WebIDL constructor operation is declared with
+`@Constructor([argTypes])` on the class alongside `@Interface`; that is what
+turns `new DerivedHTMLCollection(data)` into a platform-object construction.
+Iteration (`for…of`, spread, `Array.from`) comes for free from the indexed
+getter plus `length`, so no separate iterator member is needed.
 
 ## License
 
