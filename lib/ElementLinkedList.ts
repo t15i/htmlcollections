@@ -27,7 +27,12 @@ export class ElementLinkedList<T extends { element: Element }> {
 
   /** The first item in the list, or `null` if the list is empty. */
   get head(): T | null {
-    return this.head_ === null ? null : this.head_.data;
+    return this.head_?.data ?? null;
+  }
+
+  /** The last item in the list, or `null` if the list is empty. */
+  get tail(): T | null {
+    return this.tail_?.data ?? null;
   }
 
   /** True iff `element` is wrapped by some item in the list. O(1). */
