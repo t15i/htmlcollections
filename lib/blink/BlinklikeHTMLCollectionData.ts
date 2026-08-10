@@ -116,6 +116,48 @@ export class BlinklikeHTMLCollectionData {
   }
 
   /**
+   * The element immediately after `element` in collection order, or `null` if
+   * `element` is the last member or not a member.
+   */
+  public next(element: Element): Element | null {
+    return this.data_.nextOf(element)?.element ?? null;
+  }
+
+  /**
+   * The element immediately before `element` in collection order, or `null`
+   * if `element` is the first member or not a member.
+   */
+  public previous(element: Element): Element | null {
+    return this.data_.previousOf(element)?.element ?? null;
+  }
+
+  /**
+   * Iterates the elements after `element` in collection order, from the one
+   * immediately following `element` through the last member. Yields nothing if
+   * `element` is the last member or not a member.
+   */
+  public *forward(element: Element): ArrayIterator<Element> {
+    let next: Element | null = this.next(element);
+    while (next !== null) {
+      yield next;
+      next = this.next(next);
+    }
+  }
+
+  /**
+   * Iterates the elements before `element` in reverse collection order, from
+   * the one immediately preceding `element` back through the first member.
+   * Yields nothing if `element` is the first member or not a member.
+   */
+  public *backward(element: Element): ArrayIterator<Element> {
+    let previous: Element | null = this.previous(element);
+    while (previous !== null) {
+      yield previous;
+      previous = this.previous(previous);
+    }
+  }
+
+  /**
    * Inserts `element` immediately after `ref` in collection order.
    *
    * @param element - The element to insert.
