@@ -20,15 +20,18 @@ import type { ElementLinkedList } from "@/ElementLinkedList";
  * {@link invalidate} drops both the vector and the anchor. Use it for
  * structural mutations; attribute-only mutations should not invalidate.
  */
-export class IndexedItemsCache<T extends { element: Element }> {
-  protected data_: ElementLinkedList<T>;
+export class IndexedItemsCache<
+  E extends Element = Element,
+  T extends { element: E } = { element: E },
+> {
+  protected data_: ElementLinkedList<E, T>;
 
   protected current_: T | null = null;
   protected currentIndex_: number = -1;
 
   protected cache_: T[] | null = null;
 
-  constructor(data: ElementLinkedList<T>) {
+  constructor(data: ElementLinkedList<E, T>) {
     this.data_ = data;
   }
 
@@ -59,7 +62,7 @@ export class IndexedItemsCache<T extends { element: Element }> {
    * nearer of the list head and the previous anchor; the anchor is updated
    * to the result.
    */
-  get(index: number): Element | null {
+  get(index: number): E | null {
     if (index < 0) {
       return null;
     }

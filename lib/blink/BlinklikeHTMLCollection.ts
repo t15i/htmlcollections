@@ -22,10 +22,10 @@ import { BlinklikeHTMLCollectionSupportedPropertyNames } from "./BlinklikeHTMLCo
 
 const NullableElement = Nullable(InterfaceType(Element));
 
-export interface BlinklikeHTMLCollectionInternals {
-  data: BlinklikeHTMLCollectionData;
-  supportedPropertyIndices: BlinklikeHTMLCollectionSupportedPropertyIndices;
-  supportedPropertyNames: BlinklikeHTMLCollectionSupportedPropertyNames;
+export interface BlinklikeHTMLCollectionInternals<E extends Element = Element> {
+  data: BlinklikeHTMLCollectionData<E>;
+  supportedPropertyIndices: BlinklikeHTMLCollectionSupportedPropertyIndices<E>;
+  supportedPropertyNames: BlinklikeHTMLCollectionSupportedPropertyNames<E>;
 }
 
 /**
@@ -37,15 +37,17 @@ export interface BlinklikeHTMLCollectionInternals {
 @Exposed("Window")
 @Interface("HTMLCollection")
 @Constructor([InterfaceType(BlinklikeHTMLCollectionData)])
-export class BlinklikeHTMLCollection implements HTMLCollection {
+export class BlinklikeHTMLCollection<
+  E extends Element = Element,
+> implements HTMLCollectionOf<E> {
   declare [Symbol.iterator]: (typeof Array.prototype)[typeof Symbol.iterator];
 
   /** @internal */
-  [Internals]: BlinklikeHTMLCollectionInternals;
+  [Internals]: BlinklikeHTMLCollectionInternals<E>;
 
-  [key: number]: Element;
+  [key: number]: E;
 
-  constructor(data: BlinklikeHTMLCollectionData) {
+  constructor(data: BlinklikeHTMLCollectionData<E>) {
     this[Internals] = {
       data: data,
       supportedPropertyIndices:
@@ -63,13 +65,13 @@ export class BlinklikeHTMLCollection implements HTMLCollection {
 
   @Getter
   @Operation(NullableElement, [UnsignedLong])
-  item(index: number) {
+  item(index: number): E | null {
     return this[Internals].data.item(index);
   }
 
   @Getter
   @Operation(NullableElement, [DOMString])
-  namedItem(name: string) {
+  namedItem(name: string): E | null {
     return this[Internals].data.namedItem(name);
   }
 

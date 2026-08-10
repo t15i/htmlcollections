@@ -20,7 +20,10 @@ interface Node<T> {
  * `false` / `undefined` — callers do not need to maintain invariants on
  * external "node" handles.
  */
-export class ElementLinkedList<T extends { element: Element }> {
+export class ElementLinkedList<
+  E extends Element = Element,
+  T extends { element: E } = { element: E },
+> {
   protected head_: Node<T> | null = null;
   protected tail_: Node<T> | null = null;
   protected nodes_: Map<Element, Node<T>> = new Map();

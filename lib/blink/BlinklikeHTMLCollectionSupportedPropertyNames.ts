@@ -5,10 +5,12 @@ import type { BlinklikeHTMLCollectionData } from "./BlinklikeHTMLCollectionData"
  *
  * @see https://webidl.spec.whatwg.org/#dfn-supported-property-names
  */
-export class BlinklikeHTMLCollectionSupportedPropertyNames {
-  #data: BlinklikeHTMLCollectionData;
+export class BlinklikeHTMLCollectionSupportedPropertyNames<
+  E extends Element = Element,
+> {
+  #data: BlinklikeHTMLCollectionData<E>;
 
-  constructor(data: BlinklikeHTMLCollectionData) {
+  constructor(data: BlinklikeHTMLCollectionData<E>) {
     this.#data = data;
   }
 
