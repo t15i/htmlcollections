@@ -6,12 +6,12 @@ import { getNameAttribute, NamedItemsCache } from "./NamedItemsCache";
  * Per-element data carried in the list: the element itself plus the id/name
  * snapshots consumed by {@link NamedItemsCache}.
  */
-class ListItem {
-  element: Element;
+class ListItem<E extends Element> {
+  element: E;
   id_: string;
   name_: string | null;
 
-  constructor(element: Element) {
+  constructor(element: E) {
     this.element = element;
     this.id_ = element.id;
     this.name_ = getNameAttribute(element);
@@ -36,11 +36,14 @@ class ListItem {
  *
  * @see https://dom.spec.whatwg.org/#interface-htmlcollection
  */
-export class BlinklikeHTMLCollectionData {
-  protected data_: ElementLinkedList<ListItem> = new ElementLinkedList();
+export class BlinklikeHTMLCollectionData<E extends Element = Element> {
+  protected data_: ElementLinkedList<E, ListItem<E>> = new ElementLinkedList<
+    E,
+    ListItem<E>
+  >();
 
-  protected itemsCache_: IndexedItemsCache<ListItem>;
-  protected namedCache_: NamedItemsCache<ListItem>;
+  protected itemsCache_: IndexedItemsCache<E, ListItem<E>>;
+  protected namedCache_: NamedItemsCache<E, ListItem<E>>;
 
   constructor(root: Element) {
     this.itemsCache_ = new IndexedItemsCache(this.data_);
@@ -59,7 +62,7 @@ export class BlinklikeHTMLCollectionData {
   }
 
   /** The element at `index` in collection order, or `null` if out of range. */
-  public item(index: number): Element | null {
+  public item(index: number): E | null {
     return this.itemsCache_.get(index);
   }
 
@@ -67,7 +70,7 @@ export class BlinklikeHTMLCollectionData {
    * The first element with id `name`, falling back to the first element with
    * `name` attribute `name`, or `null` if none.
    */
-  public namedItem(name: string): Element | null {
+  public namedItem(name: string): E | null {
     return this.namedCache_.get(name);
   }
 
@@ -111,7 +114,7 @@ export class BlinklikeHTMLCollectionData {
   }
 
   /** Iterates the elements of the collection in order. */
-  public *[Symbol.iterator](): ArrayIterator<Element> {
+  public *[Symbol.iterator](): ArrayIterator<E> {
     for (const item of this.data_) yield item.element;
   }
 
@@ -119,7 +122,7 @@ export class BlinklikeHTMLCollectionData {
    * The element immediately after `element` in collection order, or `null` if
    * `element` is the last member or not a member.
    */
-  public next(element: Element): Element | null {
+  public next(element: Element): E | null {
     return this.data_.nextOf(element)?.element ?? null;
   }
 
@@ -127,7 +130,7 @@ export class BlinklikeHTMLCollectionData {
    * The element immediately before `element` in collection order, or `null`
    * if `element` is the first member or not a member.
    */
-  public previous(element: Element): Element | null {
+  public previous(element: Element): E | null {
     return this.data_.previousOf(element)?.element ?? null;
   }
 
@@ -136,8 +139,8 @@ export class BlinklikeHTMLCollectionData {
    * immediately following `element` through the last member. Yields nothing if
    * `element` is the last member or not a member.
    */
-  public *forward(element: Element): ArrayIterator<Element> {
-    let next: Element | null = this.next(element);
+  public *forward(element: Element): ArrayIterator<E> {
+    let next: E | null = this.next(element);
     while (next !== null) {
       yield next;
       next = this.next(next);
@@ -149,8 +152,8 @@ export class BlinklikeHTMLCollectionData {
    * the one immediately preceding `element` back through the first member.
    * Yields nothing if `element` is the first member or not a member.
    */
-  public *backward(element: Element): ArrayIterator<Element> {
-    let previous: Element | null = this.previous(element);
+  public *backward(element: Element): ArrayIterator<E> {
+    let previous: E | null = this.previous(element);
     while (previous !== null) {
       yield previous;
       previous = this.previous(previous);
@@ -166,7 +169,7 @@ export class BlinklikeHTMLCollectionData {
    * @returns `false` if `element` is already a member or if `ref` is a
    * non-`null` non-member; `true` otherwise.
    */
-  public insertAfter(element: Element, ref: Element | null): boolean {
+  public insertAfter(element: E, ref: Element | null): boolean {
     if (this.data_.has(element)) return false;
     if (ref !== null && !this.data_.has(ref)) return false;
 
@@ -183,7 +186,7 @@ export class BlinklikeHTMLCollectionData {
    *
    * @returns `false` if `element` was not a member; `true` otherwise. O(1).
    */
-  public remove(element: Element): boolean {
+  public remove(element: E): boolean {
     const removed = this.data_.remove(element);
     if (removed === undefined) return false;
 

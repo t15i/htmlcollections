@@ -21,8 +21,8 @@ const OBSERVE_OPTIONS: MutationObserverInit = {
  * Structural constraint for items consumable by {@link NamedItemsCache}: an
  * element wrapper that carries the current id/name snapshots.
  */
-export interface NamedItem {
-  element: Element;
+export interface NamedItem<E extends Element = Element> {
+  element: E;
   id_: string;
   name_: string | null;
 }
@@ -44,18 +44,21 @@ export interface NamedItem {
  * the cache was constructed with; otherwise its id/name mutations will not
  * reach the observer and named lookups for it will drift out of sync.
  */
-export class NamedItemsCache<T extends NamedItem> {
-  protected data_: ElementLinkedList<T>;
+export class NamedItemsCache<
+  E extends Element = Element,
+  T extends NamedItem<E> = NamedItem<E>,
+> {
+  protected data_: ElementLinkedList<E, T>;
 
-  protected idCache_: Map<string, Element[]> | null = null;
-  protected nameCache_: Map<string, Element[]> | null = null;
+  protected idCache_: Map<string, E[]> | null = null;
+  protected nameCache_: Map<string, E[]> | null = null;
 
   protected liveIds_: Map<string, number> = new Map();
   protected liveNames_: Map<string, number> = new Map();
 
   protected observer_: MutationObserver;
 
-  constructor(root: Element, data: ElementLinkedList<T>) {
+  constructor(root: Element, data: ElementLinkedList<E, T>) {
     this.data_ = data;
     this.observer_ = new MutationObserver((records) => this.dispatch_(records));
     this.observer_.observe(root, OBSERVE_OPTIONS);
@@ -79,7 +82,7 @@ export class NamedItemsCache<T extends NamedItem> {
    * Triggers a bucket build (O(n)) on the first call after invalidation;
    * subsequent calls are O(1).
    */
-  get(name: string): Element | null {
+  get(name: string): E | null {
     if (!this.has(name)) return null;
 
     if (this.idCache_ === null) this.populate_();
@@ -172,8 +175,8 @@ export class NamedItemsCache<T extends NamedItem> {
   }
 
   protected populate_(): void {
-    const idCache = new Map<string, Element[]>();
-    const nameCache = new Map<string, Element[]>();
+    const idCache = new Map<string, E[]>();
+    const nameCache = new Map<string, E[]>();
 
     for (const item of this.data_) {
       if (item.id_) {
