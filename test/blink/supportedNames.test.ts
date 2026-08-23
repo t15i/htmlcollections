@@ -78,7 +78,7 @@ describe("Supported property names", () => {
     const el = makeHTML("div", { id: "only" });
     append(s, el);
     expect("only" in s.coll).toBe(true);
-    s.data.remove(el);
+    el.remove();
     expect("only" in s.coll).toBe(false);
   });
 
@@ -87,7 +87,7 @@ describe("Supported property names", () => {
     const b = makeHTML("div", { id: "shared" });
     append(s, a);
     append(s, b, a);
-    s.data.remove(a);
+    a.remove();
     expect("shared" in s.coll).toBe(true);
     expect(s.coll.namedItem("shared")).toBe(b);
   });

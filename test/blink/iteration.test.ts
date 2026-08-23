@@ -68,7 +68,7 @@ describe("Iteration — [Symbol.iterator]", () => {
 
   test("iteration after structural mutation reflects the new state", () => {
     const els = populate(s, 3);
-    s.data.remove(els[1]!);
+    els[1]!.remove();
     expect([...s.coll]).toEqual([els[0], els[2]]);
     const fresh = makeHTML();
     append(s, fresh, els[2]!);
@@ -80,7 +80,7 @@ describe("Iteration — [Symbol.iterator]", () => {
     expect(() => {
       const it = s.coll[Symbol.iterator]();
       it.next();
-      s.data.remove(els[2]!);
+      els[2]!.remove();
       while (!it.next().done) {
         /* drain */
       }

@@ -46,9 +46,9 @@ export default {
       enabled: true,
       provider: "istanbul",
       include: ["lib/**/*.ts"],
-      exclude: ["lib/BlinklikeHTMLCollection.ts"],
+      exclude: ["lib/blink/BlinklikeHTMLCollection.ts"],
       thresholds: {
-        90: true,
+        100: true,
       },
       reporter: "text",
     },

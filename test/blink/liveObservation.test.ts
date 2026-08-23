@@ -58,15 +58,22 @@ describe("Live observation", () => {
     expect(s.coll.namedItem("late")).toBe(el);
   });
 
-  test("mutations on a non-member descendant are ignored", () => {
+  test("mutations on a child the rule rejects are ignored", () => {
+    const s2 = setup({
+      matches: (el) => el.localName !== "b",
+    });
     const member = makeHTML("div", { id: "m" });
-    const stranger = makeHTML("div", { id: "s" });
-    append(s, member);
-    s.root.appendChild(stranger); // attached, but not registered
-    expect(s.coll.namedItem("s")).toBeNull();
+    const stranger = makeHTML("b", { id: "s" });
+    s2.root.append(member, stranger);
+
+    expect(s2.coll.namedItem("m")).toBe(member);
+    expect(s2.coll.namedItem("s")).toBeNull();
+
     stranger.id = "s2";
-    expect("s2" in s.coll).toBe(false);
-    expect(s.coll.namedItem("s2")).toBeNull();
+    expect("s2" in s2.coll).toBe(false);
+    expect(s2.coll.namedItem("s2")).toBeNull();
+
+    teardown(s2);
   });
 
   test("mutating non-HTML-namespace name attribute does not change namedItem", () => {

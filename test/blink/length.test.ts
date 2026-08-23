@@ -33,7 +33,7 @@ describe("length attribute", () => {
 
   test("updates after remove", () => {
     const els = populate(s, 3);
-    s.data.remove(els[1]!);
+    els[1]!.remove();
     expect(s.coll.length).toBe(2);
   });
 
@@ -55,12 +55,12 @@ describe("length attribute", () => {
 
   test("survives interleaved insert/remove cycles", () => {
     const els = populate(s, 4);
-    s.data.remove(els[0]!);
-    s.data.remove(els[3]!);
+    els[0]!.remove();
+    els[3]!.remove();
     expect(s.coll.length).toBe(2);
     append(s, makeHTML(), els[1]!);
     expect(s.coll.length).toBe(3);
-    s.data.remove(els[1]!);
+    els[1]!.remove();
     expect(s.coll.length).toBe(2);
   });
 });

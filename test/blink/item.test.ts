@@ -94,7 +94,7 @@ describe("item(index) and indexed access", () => {
 
   test("item(i) reflects new ordering after structural mutation", () => {
     const els = populate(s, 3);
-    s.data.remove(els[0]!);
+    els[0]!.remove();
     expect(s.coll.item(0)).toBe(els[1]);
     expect(s.coll.item(1)).toBe(els[2]);
     const fresh = makeHTML();

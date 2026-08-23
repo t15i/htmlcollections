@@ -1,6 +1,15 @@
-import { BlinklikeHTMLCollection, BlinklikeHTMLCollectionData } from "lib";
+import {
+  BlinklikeHTMLCollection,
+  BlinklikeHTMLCollectionData,
+  type CollectionRule,
+} from "lib";
 
 export const SVG_NS = "http://www.w3.org/2000/svg";
+
+/** Every element child of the root is a member. */
+export const ALL_CHILDREN: CollectionRule = {
+  matches: () => true,
+};
 
 export interface Setup {
   root: HTMLElement;
@@ -8,10 +17,10 @@ export interface Setup {
   coll: BlinklikeHTMLCollection;
 }
 
-export function setup(): Setup {
+export function setup(rule: CollectionRule = ALL_CHILDREN): Setup {
   const root = document.createElement("div");
   document.body.appendChild(root);
-  const data = new BlinklikeHTMLCollectionData(root);
+  const data = new BlinklikeHTMLCollectionData(root, rule);
   const coll = new BlinklikeHTMLCollection(data);
   return { root, data, coll };
 }
@@ -39,16 +48,20 @@ export function makeSVG(
 }
 
 /**
- * Appends `el` under `s.root` and registers it in the collection after
- * `ref` (which must already be a member, or `null` to prepend).
+ * Inserts `el` under `s.root` immediately after `ref`, or as the first child
+ * when `ref` is `null`.
+ *
+ * @remarks
+ * Membership follows the tree now, so there is nothing to register: position
+ * in the collection is position in the tree.
  */
 export function append(
   s: Setup,
   el: Element,
   ref: Element | null = null,
 ): void {
-  s.root.appendChild(el);
-  s.data.insertAfter(el, ref);
+  if (ref === null) s.root.prepend(el);
+  else ref.after(el);
 }
 
 /**

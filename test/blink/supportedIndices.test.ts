@@ -50,7 +50,7 @@ describe("Supported property indices", () => {
 
   test("after remove, the formerly-trailing index is no longer supported", () => {
     const els = populate(s, 3);
-    s.data.remove(els[2]!);
+    els[2]!.remove();
     expect(2 in s.coll).toBe(false);
     expect(1 in s.coll).toBe(true);
   });

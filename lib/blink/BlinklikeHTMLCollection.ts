@@ -5,6 +5,7 @@ import {
   UnsignedLong,
 } from "@t15i/webidl-types";
 import {
+  Argument,
   Attribute,
   Exposed,
   Getter,
@@ -36,7 +37,7 @@ export interface BlinklikeHTMLCollectionInternals<E extends Element = Element> {
  */
 @Exposed("Window")
 @Interface("HTMLCollection")
-@Constructor([InterfaceType(BlinklikeHTMLCollectionData)])
+@Constructor([Argument(InterfaceType(BlinklikeHTMLCollectionData), "data")])
 export class BlinklikeHTMLCollection<
   E extends Element = Element,
 > implements HTMLCollectionOf<E> {
@@ -64,13 +65,13 @@ export class BlinklikeHTMLCollection<
   }
 
   @Getter
-  @Operation(NullableElement, [UnsignedLong])
+  @Operation(NullableElement, [Argument(UnsignedLong, "index")])
   item(index: number): E | null {
     return this[Internals].data.item(index);
   }
 
   @Getter
-  @Operation(NullableElement, [DOMString])
+  @Operation(NullableElement, [Argument(DOMString, "name")])
   namedItem(name: string): E | null {
     return this[Internals].data.namedItem(name);
   }
