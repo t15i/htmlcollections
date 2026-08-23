@@ -173,21 +173,25 @@ export class CollectionCacheObserver {
    */
   protected dispatch_(records: MutationRecord[]): void {
     for (const record of records) {
-      if (record.type === "childList") {
-        if (!affectsElements(record)) continue;
+      switch (record.type) {
+        case "childList": {
+          if (!affectsElements(record)) break;
 
-        for (const cache of this.caches_.keys()) cache.invalidate();
-        continue;
-      }
+          for (const cache of this.caches_.keys()) cache.invalidate();
+          break;
+        }
 
-      const name = record.attributeName;
-      if (name === null) continue;
+        case "attributes": {
+          const name = record.attributeName!;
 
-      for (const [cache, declared] of this.caches_) {
-        if (declared.has(name)) {
-          cache.invalidate();
-        } else if (IMPLIED_ATTRIBUTES.has(name)) {
-          cache.invalidateNames();
+          for (const [cache, declared] of this.caches_) {
+            if (declared.has(name)) {
+              cache.invalidate();
+            } else if (IMPLIED_ATTRIBUTES.has(name)) {
+              cache.invalidateNames();
+            }
+          }
+          break;
         }
       }
     }

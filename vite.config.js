@@ -16,6 +16,7 @@ export default {
       enforce: "pre",
       include: /\.tsx?$/,
       babelConfig: {
+        sourceMaps: true,
         plugins: [
           [
             "@babel/plugin-transform-typescript",

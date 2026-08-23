@@ -373,6 +373,53 @@ describe("Indexed access", () => {
     root.remove();
   });
 
+  test("isEmpty is free once a member has been read", () => {
+    const root = rooted();
+    const { rule, calls } = counting();
+    const data = new BlinklikeHTMLCollectionData(root, rule);
+    const els = flat(root, 50);
+
+    // Rendering the first item, then asking whether to show an empty-state
+    // placeholder. The anchor left behind by the read already answers that,
+    // so the second question must not consult the rule again.
+    expect(data.first).toBe(els[0]);
+    expect(calls.n).toBe(1);
+
+    expect(data.isEmpty).toBe(false);
+    expect(calls.n).toBe(1);
+
+    root.remove();
+  });
+
+  test("hasExactlyOneItem takes one step from an anchor on the first", () => {
+    const one = rooted();
+    const { rule: oneRule, calls: oneCalls } = counting();
+    const single = new BlinklikeHTMLCollectionData(one, oneRule);
+    const onlyEl = flat(one, 1)[0];
+
+    // Reading the sole member and then asking whether it is the only one:
+    // the answer costs the step that runs off the end, and no rule call.
+    expect(single.first).toBe(onlyEl);
+    expect(oneCalls.n).toBe(1);
+    expect(single.hasExactlyOneItem).toBe(true);
+    expect(oneCalls.n).toBe(1);
+
+    const root = rooted();
+    const { rule, calls } = counting();
+    const many = new BlinklikeHTMLCollectionData(root, rule);
+    const els = flat(root, 50);
+
+    // Same read on a long collection stops at the second member rather than
+    // counting the other forty-eight.
+    expect(many.first).toBe(els[0]);
+    expect(calls.n).toBe(1);
+    expect(many.hasExactlyOneItem).toBe(false);
+    expect(calls.n).toBe(2);
+
+    one.remove();
+    root.remove();
+  });
+
   test("an out-of-range or non-integer index is null on either tier", () => {
     const root = rooted();
     const data = new BlinklikeHTMLCollectionData(root, counting().rule);
@@ -473,6 +520,28 @@ describe("The anchor tier on its own", () => {
 
     cache.invalidate();
     expect(cache.get(0)).toBe(els[0]);
+
+    root.remove();
+  });
+
+  test("a root emptied behind its back reports itself empty", () => {
+    const root = rooted();
+    const els = flat(root, 10);
+    const cache = new CollectionIndexCache(root, counting().rule);
+
+    // This tier watches nothing: invalidation is the caller's job. Someone
+    // building their own collection on it can miss a change, so a read that
+    // trusts a stale count has to survive finding nothing there.
+    expect(cache.count()).toBe(10);
+    expect(cache.get(0)).toBe(els[0]);
+
+    root.replaceChildren();
+
+    // Offset 9 is one step from the recorded end and nine from the anchor, so
+    // the read shortcuts to the last member — which no longer exists.
+    expect(cache.get(9)).toBeNull();
+    expect(cache.count()).toBe(0);
+    expect(cache.isEmpty()).toBe(true);
 
     root.remove();
   });
