@@ -1,5 +1,5 @@
 {
-  "name": "htmlcollections",
+  "name": "@t15i/htmlcollections",
   "type": "module",
   "version": "4.0.0",
   "description": "A collection of HTMLCollection implementations.",

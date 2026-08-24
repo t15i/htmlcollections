@@ -63,7 +63,6 @@ export default {
       external: [/^@t15i\/(webidl-decorators|webidl-types|webspecs)(\/.*)?$/],
       output: [
         {
-          name: "htmlcollections",
           format: "es",
           dir: "dist/lib",
           entryFileNames: "[name].js",
