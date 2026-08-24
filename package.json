@@ -71,5 +71,8 @@
     "@t15i/webidl-decorators": "^4.0.0",
     "@t15i/webidl-types": "^2.0.0",
     "@t15i/webspecs": "^0.15.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
