@@ -68,10 +68,10 @@ describe("Cross-method consistency", () => {
 
   test("invariants hold across structural mutations", () => {
     const els = populate(s, 5);
-    s.data.remove(els[2]!);
+    els[2]!.remove();
     const fresh = makeHTML();
     append(s, fresh, els[0]!);
-    s.data.remove(els[4]!);
+    els[4]!.remove();
 
     const arr = [...s.coll];
     expect(s.coll.length).toBe(arr.length);

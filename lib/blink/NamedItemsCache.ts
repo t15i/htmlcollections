@@ -1,9 +1,20 @@
 import { HTMLNamespace } from "@t15i/webspecs/infra";
-import type { ElementLinkedList } from "@/ElementLinkedList";
+
+import type { IndexedItemsCache } from "./IndexedItemsCache";
 
 /**
  * Reads the `name` attribute of `element` if it is in the HTML namespace,
  * otherwise returns `null`.
+ *
+ * @param element - The element to read.
+ *
+ * @returns The value of the `name` attribute, or `null` if the element does
+ * not carry one or is not an HTML element.
+ *
+ * @remarks
+ * O(1). The `name` half of named access is defined over HTML elements only —
+ * unlike the id half — so this namespace check is what keeps a `name`
+ * attribute on, say, an SVG element out of the name buckets.
  */
 export function getNameAttribute(element: Element): string | null {
   return element.namespaceURI === HTMLNamespace
@@ -11,87 +22,67 @@ export function getNameAttribute(element: Element): string | null {
     : null;
 }
 
-const OBSERVE_OPTIONS: MutationObserverInit = {
-  attributes: true,
-  attributeFilter: ["id", "name"],
-  subtree: true,
-};
-
 /**
- * Structural constraint for items consumable by {@link NamedItemsCache}: an
- * element wrapper that carries the current id/name snapshots.
- */
-export interface NamedItem<E extends Element = Element> {
-  element: E;
-  id_: string;
-  name_: string | null;
-}
-
-/**
- * Lazy name-and-id lookup cache backed by per-item snapshots and a
- * `MutationObserver`.
+ * Id and name buckets over the members of a collection.
  *
  * @remarks
- * Each instance owns one `MutationObserver` rooted at the `root` element with
- * `subtree: true`, watching `id` and `name` attribute changes. Read paths
- * synchronously drain pending records before answering, so callers never see
- * stale state.
- *
- * {@link invalidate} drops the bucket maps but keeps the live counters; it is
- * called internally after each attribute swap.
- *
- * Every item passed to {@link notifyAdded} must be a descendant of the `root`
- * the cache was constructed with; otherwise its id/name mutations will not
- * reach the observer and named lookups for it will drift out of sync.
+ * Built by one pass over {@link IndexedItemsCache.items}, so the first named
+ * read materializes the item vector as well. Buckets are filled in tree
+ * order, which is what makes the first entry of a bucket the first member
+ * answering to that key.
  */
-export class NamedItemsCache<
-  E extends Element = Element,
-  T extends NamedItem<E> = NamedItem<E>,
-> {
-  protected data_: ElementLinkedList<E, T>;
+export class NamedItemsCache<E extends Element = Element> {
+  protected index_: IndexedItemsCache<E>;
 
-  protected idCache_: Map<string, E[]> | null = null;
-  protected nameCache_: Map<string, E[]> | null = null;
-
-  protected liveIds_: Map<string, number> = new Map();
-  protected liveNames_: Map<string, number> = new Map();
-
-  protected observer_: MutationObserver;
-
-  constructor(root: Element, data: ElementLinkedList<E, T>) {
-    this.data_ = data;
-    this.observer_ = new MutationObserver((records) => this.dispatch_(records));
-    this.observer_.observe(root, OBSERVE_OPTIONS);
-  }
+  protected ids_: Map<string, E[]> | null = null;
+  protected names_: Map<string, E[]> | null = null;
 
   /**
-   * True iff any current member of the collection carries `name` as its id
-   * or `name` attribute. O(1).
+   * @param index - The item cache these buckets are built over. Dropping its
+   * members without dropping the buckets would leave them answering with
+   * elements the collection no longer has.
    */
-  has(name: string): boolean {
-    this.drain_();
-    return this.liveIds_.has(name) || this.liveNames_.has(name);
+  constructor(index: IndexedItemsCache<E>) {
+    this.index_ = index;
   }
 
   /**
-   * Returns the first element with id `name`, falling back to the first
-   * element with `name` attribute `name`, or `null` if no current member
-   * matches.
+   * True iff any member carries `name` as its id or `name` attribute.
+   *
+   * @param name - The key to look for.
+   *
+   * @returns Whether any member answers to `name`.
    *
    * @remarks
-   * Triggers a bucket build (O(n)) on the first call after invalidation;
-   * subsequent calls are O(1).
+   * O(n) on the first call after an invalidation, O(1) after that.
+   */
+  has(name: string): boolean {
+    if (this.ids_ === null) this.populate_();
+    return this.ids_!.has(name) || this.names_!.has(name);
+  }
+
+  /**
+   * The first member with id `name`, falling back to the first member whose
+   * `name` attribute is `name`, or `null` if none matches.
+   *
+   * @param name - An id or `name` attribute value.
+   *
+   * @returns The first member answering to `name`, or `null` if none does.
+   *
+   * @remarks
+   * O(n) on the first call after an invalidation, O(1) after that. Ids are
+   * consulted first, and an element whose two attributes agree is kept out of
+   * the name bucket, so a name bucket is only ever reached by a key no id
+   * claims.
    */
   get(name: string): E | null {
-    if (!this.has(name)) return null;
+    if (this.ids_ === null) this.populate_();
 
-    if (this.idCache_ === null) this.populate_();
+    const byId = this.ids_!.get(name);
+    if (byId !== undefined) return byId[0]!;
 
-    const byId = this.idCache_!.get(name);
-    if (byId) return byId[0]!;
-
-    const byName = this.nameCache_!.get(name);
-    if (byName) return byName[0]!;
+    const byName = this.names_!.get(name);
+    if (byName !== undefined) return byName[0]!;
 
     return null;
   }
@@ -99,110 +90,67 @@ export class NamedItemsCache<
   /**
    * Iterates the deduplicated keys currently in use as either an id or a
    * `name` attribute, in collection order.
+   *
+   * @returns A generator over the keys, each one yielded once.
+   *
+   * @remarks
+   * O(n), and independent of the buckets: keys are read off the members
+   * themselves, id before `name` within one member. Materializes the item
+   * vector, but not the buckets.
    */
-  *[Symbol.iterator]() {
-    this.drain_();
+  *[Symbol.iterator](): Generator<string, void, unknown> {
     const seen = new Set<string>();
-    for (const item of this.data_) {
-      if (item.id_ && !seen.has(item.id_)) {
-        seen.add(item.id_);
-        yield item.id_;
+    for (const element of this.index_.items()) {
+      const id = element.id;
+      if (id && !seen.has(id)) {
+        seen.add(id);
+        yield id;
       }
-      if (item.name_ && !seen.has(item.name_)) {
-        seen.add(item.name_);
-        yield item.name_;
+      const name = getNameAttribute(element);
+      if (name && !seen.has(name)) {
+        seen.add(name);
+        yield name;
       }
     }
   }
 
-  /** Records that `item` joined the collection. */
-  notifyAdded(item: T): void {
-    if (item.id_) this.increment_(this.liveIds_, item.id_);
-    if (item.name_) this.increment_(this.liveNames_, item.name_);
-  }
-
-  /** Records that `item` is about to leave the collection. */
-  notifyRemoved(item: T): void {
-    if (item.id_) this.decrement_(this.liveIds_, item.id_);
-    if (item.name_) this.decrement_(this.liveNames_, item.name_);
-  }
-
-  /** Drops the bucket maps; keeps the live counters. */
+  /**
+   * Drops the bucket maps.
+   *
+   * @remarks
+   * O(1). The item cache is left alone, so the next named read re-buckets the
+   * members already in hand instead of walking the tree.
+   */
   invalidate(): void {
-    this.idCache_ = null;
-    this.nameCache_ = null;
+    this.ids_ = null;
+    this.names_ = null;
   }
 
-  /**
-   * Synchronously consumes any records the observer has not yet delivered
-   * and applies them.
-   */
-  protected drain_(): void {
-    const records = this.observer_.takeRecords();
-    if (records.length === 0) return;
-    this.dispatch_(records);
-  }
-
-  protected dispatch_(records: MutationRecord[]): void {
-    for (const record of records) {
-      this.applyChange_(record.target as Element, record.attributeName!);
-    }
-  }
-
-  /**
-   * Applies one observed id/name change: updates the per-item snapshot,
-   * adjusts the live counters, and invalidates the bucket maps.
-   */
-  protected applyChange_(element: Element, attributeName: string): void {
-    const item = this.data_.get(element);
-    if (item === undefined) return;
-
-    if (attributeName === "id") {
-      const nextId = element.id;
-      if (item.id_ === nextId) return;
-      if (item.id_) this.decrement_(this.liveIds_, item.id_);
-      item.id_ = nextId;
-      if (nextId) this.increment_(this.liveIds_, nextId);
-      this.invalidate();
-    } else {
-      const nextName = getNameAttribute(element);
-      if (item.name_ === nextName) return;
-      if (item.name_) this.decrement_(this.liveNames_, item.name_);
-      item.name_ = nextName;
-      if (nextName) this.increment_(this.liveNames_, nextName);
-      this.invalidate();
-    }
-  }
-
+  /** Buckets every member by its id and by its `name` attribute. */
   protected populate_(): void {
-    const idCache = new Map<string, E[]>();
-    const nameCache = new Map<string, E[]>();
+    const ids = new Map<string, E[]>();
+    const names = new Map<string, E[]>();
 
-    for (const item of this.data_) {
-      if (item.id_) {
-        const bucket = idCache.get(item.id_);
-        if (bucket) bucket.push(item.element);
-        else idCache.set(item.id_, [item.element]);
+    for (const element of this.index_.items()) {
+      const id = element.id;
+      if (id) {
+        const bucket = ids.get(id);
+        if (bucket !== undefined) bucket.push(element);
+        else ids.set(id, [element]);
       }
-      if (item.name_) {
-        const bucket = nameCache.get(item.name_);
-        if (bucket) bucket.push(item.element);
-        else nameCache.set(item.name_, [item.element]);
+
+      // An element whose two attributes agree is left out of the name bucket:
+      // the id bucket is consulted first, so a second entry could only ever be
+      // found by a lookup that already succeeded.
+      const name = getNameAttribute(element);
+      if (name && name !== id) {
+        const bucket = names.get(name);
+        if (bucket !== undefined) bucket.push(element);
+        else names.set(name, [element]);
       }
     }
 
-    this.idCache_ = idCache;
-    this.nameCache_ = nameCache;
-  }
-
-  protected increment_(map: Map<string, number>, key: string): void {
-    map.set(key, (map.get(key) ?? 0) + 1);
-  }
-
-  protected decrement_(map: Map<string, number>, key: string): void {
-    const count = map.get(key);
-    if (count === undefined) return;
-    if (count <= 1) map.delete(key);
-    else map.set(key, count - 1);
+    this.ids_ = ids;
+    this.names_ = names;
   }
 }

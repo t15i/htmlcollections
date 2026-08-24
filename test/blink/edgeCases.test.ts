@@ -18,11 +18,12 @@ describe("Edge cases", () => {
     teardown(s);
   });
 
-  test("element rejected on second insertAfter", () => {
+  test("an element appears at most once", () => {
     const el = makeHTML();
     append(s, el);
-    expect(s.data.insertAfter(el, null)).toBe(false);
+    append(s, el);
     expect(s.coll.length).toBe(1);
+    expect(s.data.indexOf(el)).toBe(0);
   });
 
   test("very long ids/names are matched exactly", () => {
@@ -65,31 +66,40 @@ describe("Edge cases", () => {
     expect((s.coll as unknown as Record<string, Element>)["0"]).toBe(a);
   });
 
-  test("detached element (under root but not registered) is not a member", () => {
-    populate(s, 2);
-    const stranger = makeHTML("div", { id: "ghost" });
-    s.root.appendChild(stranger);
-    expect(s.data.contains(stranger)).toBe(false);
-    expect(s.coll.namedItem("ghost")).toBeNull();
+  test("a child the rule rejects is not a member", () => {
+    const s2 = setup({
+      matches: (el) => el.localName !== "b",
+    });
+    const stranger = makeHTML("b", { id: "ghost" });
+    s2.root.append(makeHTML(), stranger);
+
+    expect(s2.data.contains(stranger)).toBe(false);
+    expect(s2.coll.namedItem("ghost")).toBeNull();
+
     stranger.id = "ghost-2";
-    expect(s.coll.namedItem("ghost-2")).toBeNull();
+    expect(s2.coll.namedItem("ghost-2")).toBeNull();
+
+    teardown(s2);
   });
 
-  test("element not under root — attribute mutations are not observed", () => {
-    const detached = makeHTML("div", { id: "outside" });
-    // Do not append to s.root.
-    expect(s.data.insertAfter(detached, null)).toBe(true);
-    expect(s.coll.namedItem("outside")).toBe(detached);
-    detached.id = "renamed";
-    // The cache cannot observe this mutation; the stale entry remains.
-    expect(s.coll.namedItem("outside")).toBe(detached);
+  test("an element not under root is never a member", () => {
+    const outside = makeHTML("div", { id: "outside" });
+    document.body.append(outside);
+
+    expect(s.data.contains(outside)).toBe(false);
+    expect(s.coll.namedItem("outside")).toBeNull();
+
+    outside.id = "renamed";
+    expect(s.coll.namedItem("renamed")).toBeNull();
+
+    outside.remove();
   });
 
   test("survives 1000 insert/remove cycles", () => {
     for (let cycle = 0; cycle < 1000; cycle++) {
       const el = makeHTML("div", { id: `c-${cycle}` });
       append(s, el);
-      s.data.remove(el);
+      el.remove();
     }
     expect(s.coll.length).toBe(0);
   });

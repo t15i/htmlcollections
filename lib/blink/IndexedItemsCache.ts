@@ -1,125 +1,167 @@
-import type { ElementLinkedList } from "@/ElementLinkedList";
+import { CollectionIndexCache } from "./CollectionIndexCache";
 
 /**
- * Lazy items vector with a single-position fallback for indexed access.
+ * The members of a collection in tree order, with their positions.
  *
  * @remarks
- * Two access paths chosen inline by {@link get}:
- *
- *   - When the items vector is built, {@link get} is an array index access.
- *     The vector is populated on the first {@link count} call after
- *     invalidation.
- *
- *   - Otherwise, {@link get} walks from whichever of the list head and the
- *     cached anchor is closer to the requested index, then updates the
- *     anchor. Sequential access amortizes to O(1) per call.
- *
- * Callers that only ever query {@link get} (without touching {@link count})
- * never pay the O(n) populate cost.
- *
- * {@link invalidate} drops both the vector and the anchor. Use it for
- * structural mutations; attribute-only mutations should not invalidate.
+ * A vector and a position map laid over {@link CollectionIndexCache}, built
+ * by one walk and dropped whole. Reads that want a single member still go
+ * through the cursor and cost nothing extra; anything that wants the count, a
+ * position or every member materializes the vector once and is O(1) after
+ * that. Vector, position map and count are always built together, so a live
+ * vector means a trustworthy count.
  */
 export class IndexedItemsCache<
   E extends Element = Element,
-  T extends { element: E } = { element: E },
-> {
-  protected data_: ElementLinkedList<E, T>;
+> extends CollectionIndexCache<E> {
+  protected items_: E[] | null = null;
+  protected indices_: Map<Element, number> | null = null;
 
-  protected current_: T | null = null;
-  protected currentIndex_: number = -1;
-
-  protected cache_: T[] | null = null;
-
-  constructor(data: ElementLinkedList<E, T>) {
-    this.data_ = data;
+  /**
+   * The members in tree order. Materializes the vector if it is not built.
+   *
+   * @returns The members, in tree order. Not to be modified by the caller.
+   *
+   * @remarks
+   * O(n) on the first call after an invalidation, O(1) after that. The vector
+   * is the cache's own and is replaced rather than patched, so a reference
+   * kept across an invalidation is a snapshot, not a stale view that will
+   * repair itself.
+   */
+  items(): readonly E[] {
+    if (this.items_ === null) this.populate_();
+    return this.items_!;
   }
 
   /**
-   * Returns the number of items in the collection.
+   * The number of members.
+   *
+   * @returns How many elements the rule matches under the root.
    *
    * @remarks
-   * Amortized O(1). The first call after invalidation walks the full
-   * collection (O(n)) and populates the items vector.
+   * O(n) on the first call after an invalidation, O(1) after that. Unlike the
+   * cursor-only count, the walk keeps every member it passes, which is what
+   * turns later indexed access into an array lookup.
    */
-  count(): number {
-    if (!this.cache_) {
-      this.populate_();
-    }
-    return this.cache_!.length;
+  override count(): number {
+    if (this.countValid_) return this.count_;
+    this.populate_();
+    return this.count_;
   }
 
-  /** True iff `index` is a valid in-range integer index for the collection. */
+  /**
+   * True iff `index` is a valid in-range integer index for the collection.
+   *
+   * @param index - A candidate index.
+   *
+   * @returns Whether the collection has a member at `index`.
+   *
+   * @remarks
+   * Answered from {@link IndexedItemsCache.count}, so it materializes the
+   * vector: O(n) on the first call after an invalidation, O(1) after that.
+   */
   has(index: number): boolean {
     return Number.isInteger(index) && 0 <= index && index < this.count();
   }
 
   /**
-   * Returns the element at `index`, or `null` if `index` is out of range.
+   * The member at `index`, or `null` if out of range.
+   *
+   * @param index - A zero-based position in tree order.
+   *
+   * @returns The member at `index`, or `null` if `index` is not an in-range
+   * integer.
    *
    * @remarks
-   * O(1) when the items vector is built. Otherwise O(distance) from the
-   * nearer of the list head and the previous anchor; the anchor is updated
-   * to the result.
+   * O(1) once the vector is built. Until then it is the cursor walk of
+   * {@link CollectionIndexCache.get}, so a caller that only ever asks for
+   * single members never pays for the vector.
    */
-  get(index: number): E | null {
-    if (index < 0) {
+  override get(index: number): E | null {
+    if (this.items_ === null) return super.get(index);
+    if (!Number.isInteger(index) || index < 0 || index >= this.count_) {
       return null;
     }
-
-    if (this.cache_) {
-      if (index >= this.cache_.length) return null;
-      return this.cache_[index]?.element ?? null;
-    }
-
-    const cached = this.current_;
-    const distHead = index;
-    const distCached =
-      cached !== null ? Math.abs(index - this.currentIndex_) : Infinity;
-
-    let item: T | null;
-    let i: number;
-    if (distCached <= distHead) {
-      item = cached;
-      i = this.currentIndex_;
-    } else {
-      item = this.data_.head;
-      i = 0;
-    }
-
-    while (item !== null && i < index) {
-      item = this.data_.nextOf(item.element);
-      i++;
-    }
-    while (item !== null && i > index) {
-      item = this.data_.previousOf(item.element);
-      i--;
-    }
-
-    if (item === null) {
-      return null;
-    }
-
-    this.current_ = item;
-    this.currentIndex_ = i;
-
-    return item.element;
+    return this.items_[index]!;
   }
 
-  /** Iterates the valid indices of the collection. */
-  *[Symbol.iterator]() {
+  /**
+   * The position of `element`, or `-1` if it is not a member.
+   *
+   * @param element - Any element, member or not.
+   *
+   * @returns The zero-based position of `element` in tree order, or `-1`.
+   *
+   * @remarks
+   * Materializes the vector: O(n) on the first call after an invalidation,
+   * O(1) after that. Positions come out of the same walk as the vector, so
+   * `get(indexOf(el))` is `el` for every member.
+   */
+  indexOf(element: Element): number {
+    if (this.indices_ === null) this.populate_();
+    return this.indices_!.get(element) ?? -1;
+  }
+
+  /**
+   * True iff `element` is a member.
+   *
+   * @param element - Any element, member or not.
+   *
+   * @returns Whether `element` is currently in the collection.
+   *
+   * @remarks
+   * Materializes the vector: O(n) on the first call after an invalidation,
+   * O(1) after that. Answered from the position map rather than from the
+   * rule, so an element that would match but sits outside the root is not a
+   * member.
+   */
+  contains(element: Element): boolean {
+    if (this.indices_ === null) this.populate_();
+    return this.indices_!.has(element);
+  }
+
+  /**
+   * Iterates the valid indices of the collection.
+   *
+   * @returns A generator over `0` through `count() - 1`, in order.
+   *
+   * @remarks
+   * Materializes the vector, then O(1) per step. The count is re-read on
+   * every step, so an invalidation partway through is picked up instead of
+   * being iterated over.
+   */
+  *[Symbol.iterator](): Generator<number, void, unknown> {
     for (let i = 0; i < this.count(); i++) yield i;
   }
 
-  /** Drops the items vector and the anchor. */
-  invalidate(): void {
-    this.current_ = null;
-    this.currentIndex_ = -1;
-    this.cache_ = null;
+  /**
+   * Drops the vector and the position map along with the anchor.
+   *
+   * @remarks
+   * O(1). The next read rebuilds from the tree.
+   */
+  override invalidate(): void {
+    super.invalidate();
+    this.items_ = null;
+    this.indices_ = null;
   }
 
+  /**
+   * Walks the whole collection once, keeping every member, and leaves the
+   * anchor on the last one.
+   */
   protected populate_(): void {
-    this.cache_ = [];
-    for (const item of this.data_) this.cache_.push(item);
+    const items: E[] = [];
+    const indices = new Map<Element, number>();
+
+    for (let node = this.first_(); node !== null; node = this.next_(node)) {
+      indices.set(node, items.length);
+      items.push(node);
+    }
+
+    this.currentIndex_ = items.length === 0 ? 0 : items.length - 1;
+    this.items_ = items;
+    this.indices_ = indices;
+    this.setCount_(items.length);
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "htmlcollections",
   "type": "module",
-  "version": "3.2.0",
+  "version": "4.0.0",
   "description": "A collection of HTMLCollection implementations.",
   "keywords": [
     "htmlcollection",
@@ -38,7 +38,7 @@
     "ci:lint:tests": "eslint --max-warnings 1 test",
     "ci:format": "prettier --list-different lib test",
     "ci:format:lib": "prettier --list-different lib",
-    "ci:format:tests": "prettier --list-different tests",
+    "ci:format:tests": "prettier --list-different test",
     "ci:typecheck": "npm run ci:typecheck:lib && npm run ci:typecheck:tests",
     "ci:typecheck:lib": "tsc -p lib/tsconfig.json",
     "ci:typecheck:tests": "tsc -p test/tsconfig.json",
@@ -50,9 +50,9 @@
     "@babel/plugin-proposal-decorators": "^7.29.7",
     "@babel/plugin-transform-typescript": "^7.29.7",
     "@eslint/js": "^10.0.1",
-    "@t15i/webidl-decorators": "^3.0.0",
-    "@t15i/webidl-types": "^1.0.0",
-    "@t15i/webspecs": "^0.13.1",
+    "@t15i/webidl-decorators": "^4.0.0",
+    "@t15i/webidl-types": "^2.0.0",
+    "@t15i/webspecs": "^0.15.0",
     "@vitest/browser-playwright": "^4.1.4",
     "@vitest/coverage-istanbul": "^4.1.4",
     "eslint": "^10.2.0",
@@ -68,8 +68,8 @@
     "vitest": "^4.1.4"
   },
   "peerDependencies": {
-    "@t15i/webidl-decorators": "^3.0.0",
-    "@t15i/webidl-types": "^1.0.0",
-    "@t15i/webspecs": "^0.13.1"
+    "@t15i/webidl-decorators": "^4.0.0",
+    "@t15i/webidl-types": "^2.0.0",
+    "@t15i/webspecs": "^0.15.0"
   }
 }

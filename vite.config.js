@@ -16,6 +16,7 @@ export default {
       enforce: "pre",
       include: /\.tsx?$/,
       babelConfig: {
+        sourceMaps: true,
         plugins: [
           [
             "@babel/plugin-transform-typescript",
@@ -46,9 +47,9 @@ export default {
       enabled: true,
       provider: "istanbul",
       include: ["lib/**/*.ts"],
-      exclude: ["lib/BlinklikeHTMLCollection.ts"],
+      exclude: ["lib/blink/BlinklikeHTMLCollection.ts"],
       thresholds: {
-        90: true,
+        100: true,
       },
       reporter: "text",
     },

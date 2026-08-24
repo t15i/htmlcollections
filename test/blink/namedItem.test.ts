@@ -110,6 +110,35 @@ describe("namedItem(name) and named property access", () => {
     expect(s.coll.namedItem("shared")).toBe(byId);
   });
 
+  test("an element whose id and name agree resolves through its id", () => {
+    const el = makeHTML("div", { id: "same", name: "same" });
+    append(s, el);
+
+    // Such an element is left out of the name bucket entirely; the id bucket
+    // is consulted first, so the lookup is unaffected.
+    expect(s.coll.namedItem("same")).toBe(el);
+    expect("same" in s.coll).toBe(true);
+    expect(Object.keys(s.coll)).toContain("same");
+  });
+
+  test("an earlier name-only element still loses to a later matching id", () => {
+    const byName = makeHTML("div", { name: "shared" });
+    const both = makeHTML("div", { id: "shared", name: "shared" });
+    append(s, byName);
+    append(s, both, byName);
+
+    expect(s.coll.namedItem("shared")).toBe(both);
+  });
+
+  test("dropping the id falls back to the name attribute", () => {
+    const el = makeHTML("div", { id: "same", name: "same" });
+    append(s, el);
+    expect(s.coll.namedItem("same")).toBe(el);
+
+    el.removeAttribute("id");
+    expect(s.coll.namedItem("same")).toBe(el);
+  });
+
   test("named lookup does not crash on elements without id/name", () => {
     populate(s, 3);
     expect(() => s.coll.namedItem("foo")).not.toThrow();
