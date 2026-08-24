@@ -11,10 +11,6 @@ Indexed access is served by a two-tier cache: a cursor that walks only as far
 as the index it was asked for, with a vector materialized on top of it the
 first time anything reads `length`.
 
-> **Note for 3.x users.** Membership used to be **pushed** in by the caller
-> through `insertAfter` and `remove`. It is now **pulled** from the tree by a
-> rule you declare once. See [Migrating from 3.x](#migrating-from-3x).
-
 > The decorator proposal used is the
 > [TC39 stage-3 / 2023-11](https://github.com/tc39/proposal-decorators) variant.
 > Make sure your toolchain supports it.
@@ -22,14 +18,14 @@ first time anything reads `length`.
 ## Install
 
 ```sh
-npm install htmlcollections
+npm install @t15i/htmlcollections
 ```
 
 Install with peer dependencies if your package manager does not do so
 automatically:
 
 ```sh
-npm install htmlcollections @t15i/webidl-decorators @t15i/webidl-types @t15i/webspecs
+npm install @t15i/htmlcollections @t15i/webidl-decorators @t15i/webidl-types @t15i/webspecs
 ```
 
 ## Usage
@@ -41,7 +37,7 @@ function of the tree, recomputed whenever the tree changes underneath:
 import {
   BlinklikeHTMLCollection,
   BlinklikeHTMLCollectionData,
-} from "htmlcollections";
+} from "@t15i/htmlcollections";
 
 const root = document.querySelector("#list")!;
 
@@ -67,7 +63,7 @@ are found by the first read.
 import {
   BlinklikeHTMLCollection,
   BlinklikeHTMLCollectionData,
-} from "htmlcollections";
+} from "@t15i/htmlcollections";
 
 class HTMLCustomListElement extends HTMLElement {
   #data = new BlinklikeHTMLCollectionData(this, {
@@ -244,7 +240,7 @@ import {
   BlinklikeHTMLCollection,
   BlinklikeHTMLCollectionData,
   type BlinklikeHTMLCollectionInternals,
-} from "htmlcollections";
+} from "@t15i/htmlcollections";
 
 interface DerivedHTMLCollectionInternals extends BlinklikeHTMLCollectionInternals {
   // ...
@@ -278,54 +274,6 @@ class DerivedHTMLCollection extends BlinklikeHTMLCollection {
 `InterfaceType`, `UnsignedLong`, …) you pass to the decorators.
 `@t15i/webidl-decorators` provides the decorator API, and `@t15i/webspecs`
 provides the runtime platform-object semantics behind it.
-
-Every interface must declare where it is exposed: `@Exposed("Window")` is
-applied _outside_ `@Interface` and is required — an interface that is never
-exposed is rejected when `@Interface` finalizes it. `@Interface` uses the class
-name as the WebIDL identifier by default, or you can pass one explicitly, e.g.
-`@Interface("HTMLCollection")` (as `BlinklikeHTMLCollection` does).
-
-Operations and special operations follow the same model
-`BlinklikeHTMLCollection` uses. A plain operation is
-`@Operation(returnType, argumentList)`, where the argument list is built with
-`Argument(type, "identifier")` — every WebIDL argument is declared under an
-identifier, so `item(index)` passes `[Argument(UnsignedLong, "index")]`. An
-indexed or named getter stacks `@Getter` on top of it (with `@Setter`/`@Deleter`
-as the other special operations), and whether it acts on indexed or named
-properties is inferred from the first argument type — `UnsignedLong` for
-`item(index)`, `DOMString` for `namedItem(name)`. A WebIDL constructor operation
-is declared with `@Constructor(argumentList)` on the class alongside
-`@Interface`; that is what turns `new DerivedHTMLCollection(data)` into a
-platform-object construction.
-Iteration (`for…of`, spread, `Array.from`) comes for free from the indexed
-getter plus `length`, so no separate iterator member is needed.
-
-The lower layers are exported too: `IndexedItemsCache` (the item vector over
-the cursor), `CollectionIndexCache` (the cursor alone, O(1) memory),
-`NamedItemsCache`, and `CollectionCacheObserver`.
-
-## Migrating from 3.x
-
-`BlinklikeHTMLCollectionData` now takes a rule, and owns membership itself.
-
-```diff
--const data = new BlinklikeHTMLCollectionData(root);
--data.insertAfter(element, previous);
--data.remove(element);
-+const data = new BlinklikeHTMLCollectionData(root, {
-+  matches: (el) => el.localName === "custom-item",
-+});
-```
-
-- `insertAfter` and `remove` are gone. Put the element in the tree; the
-  collection finds it.
-- `ElementLinkedList` is gone.
-- `RootObserver` / `RootObserverSubscriber` are now `CollectionCacheObserver` /
-  `CollectionCache`, registered with
-  `CollectionCacheObserver.observe(root, cache, options)`.
-- `invalidateItems()` is now `invalidate()`.
-- The `scope` and `attributes` fields no longer appear on
-  `BlinklikeHTMLCollectionData`; they belong to the rule.
 
 ## License
 
