@@ -1,10 +1,8 @@
 import { describe, expect, test } from "vitest";
 
-import {
-  BlinklikeHTMLCollectionData,
-  CollectionIndexCache,
-  type CollectionRule,
-} from "lib";
+import { CollectionRule } from "lib";
+import { BlinklikeHTMLCollectionData } from "lib/blink/BlinklikeHTMLCollectionData";
+import { CollectionIndexCache } from "lib/blink/CollectionIndexCache";
 
 import { makeHTML } from "./utils";
 
@@ -21,13 +19,13 @@ function counting(
   subtree = false,
 ) {
   const calls = { n: 0 };
-  const rule: CollectionRule = {
+  const rule = new CollectionRule({
     matches: (el: Element) => {
       calls.n++;
       return matches(el);
     },
     subtree,
-  };
+  });
   return { rule, calls };
 }
 
@@ -209,10 +207,13 @@ describe("Indexed access", () => {
     expect([...warm]).toEqual(members);
 
     for (let i = 0; i < members.length; i++) {
-      const cold = new BlinklikeHTMLCollectionData(root, {
-        matches: () => true,
-        subtree: true,
-      });
+      const cold = new BlinklikeHTMLCollectionData(
+        root,
+        new CollectionRule({
+          matches: () => true,
+          subtree: true,
+        }),
+      );
       expect(cold.item(i)).toBe(members[i]);
     }
 
@@ -246,10 +247,13 @@ describe("Indexed access", () => {
 
   test("a descendant walk agrees with tree order in both directions", () => {
     const root = rooted();
-    const data = new BlinklikeHTMLCollectionData(root, {
-      matches: () => true,
-      subtree: true,
-    });
+    const data = new BlinklikeHTMLCollectionData(
+      root,
+      new CollectionRule({
+        matches: () => true,
+        subtree: true,
+      }),
+    );
     const members = nested(root);
 
     // Forward from cold, then all the way back through the same anchor.
@@ -315,9 +319,12 @@ describe("Indexed access", () => {
 
   test("isEmpty is true for a collection with no members", () => {
     const root = rooted();
-    const data = new BlinklikeHTMLCollectionData(root, {
-      matches: (el) => el.hasAttribute("on"),
-    });
+    const data = new BlinklikeHTMLCollectionData(
+      root,
+      new CollectionRule({
+        matches: (el) => el.hasAttribute("on"),
+      }),
+    );
     flat(root, 5);
 
     expect(data.isEmpty).toBe(true);
@@ -463,9 +470,12 @@ describe("Indexed access under an impure rule", () => {
   test("a collection that empties under the anchor reports itself empty", () => {
     const root = rooted();
     let live = true;
-    const data = new BlinklikeHTMLCollectionData(root, {
-      matches: () => live,
-    });
+    const data = new BlinklikeHTMLCollectionData(
+      root,
+      new CollectionRule({
+        matches: () => live,
+      }),
+    );
     const els = flat(root, 20);
 
     expect(data.item(5)).toBe(els[5]);
@@ -482,9 +492,12 @@ describe("Indexed access under an impure rule", () => {
   test("a backward walk that runs out of members returns null", () => {
     const root = rooted();
     let all = true;
-    const data = new BlinklikeHTMLCollectionData(root, {
-      matches: (el) => all || el.id === "e0",
-    });
+    const data = new BlinklikeHTMLCollectionData(
+      root,
+      new CollectionRule({
+        matches: (el) => all || el.id === "e0",
+      }),
+    );
     const els = flat(root, 20);
 
     expect(data.item(5)).toBe(els[5]);
@@ -570,10 +583,10 @@ describe("The two tiers agree", () => {
   }
 
   test("random access from an anchor matches the materialized vector", () => {
-    const rule: CollectionRule = {
+    const rule = new CollectionRule({
       matches: (el) => el.hasAttribute("on"),
       subtree: true,
-    };
+    });
 
     for (const seed of [1, 7, 42, 1337]) {
       const rand = rng(seed);
@@ -607,10 +620,10 @@ describe("The two tiers agree", () => {
     const root = rooted();
     randomTree(root, rand, 40);
 
-    const rule: CollectionRule = {
+    const rule = new CollectionRule({
       matches: (el) => el.hasAttribute("on"),
       subtree: true,
-    };
+    });
     const reference = new BlinklikeHTMLCollectionData(root, rule);
     const subject = new BlinklikeHTMLCollectionData(root, rule);
 
@@ -668,10 +681,10 @@ describe("Walker filter semantics", () => {
   // Spelled out rather than left to the default: children-against-descendants
   // is the subject of every test below, and the rule it is paired with says
   // `subtree: true`.
-  const ON: CollectionRule = {
+  const ON = new CollectionRule({
     matches: (el) => el.hasAttribute("on"),
     subtree: false,
-  };
+  });
 
   test("a children-scoped walk never descends past the children", () => {
     const root = rooted();
@@ -719,10 +732,13 @@ describe("Walker filter semantics", () => {
   test("a descendant-scoped walk does descend past non-members", () => {
     const root = rooted();
     const { b, d } = mixed(root);
-    const data = new BlinklikeHTMLCollectionData(root, {
-      matches: (el) => el.hasAttribute("on"),
-      subtree: true,
-    });
+    const data = new BlinklikeHTMLCollectionData(
+      root,
+      new CollectionRule({
+        matches: (el) => el.hasAttribute("on"),
+        subtree: true,
+      }),
+    );
 
     const ids = [...data].map((el) => el.id);
     expect(ids).toEqual(["g", "b", "bg", "h", "d"]);
@@ -735,10 +751,13 @@ describe("Walker filter semantics", () => {
   test("a rule that matches the root never yields the root", () => {
     const root = rooted();
     let live = true;
-    const data = new BlinklikeHTMLCollectionData(root, {
-      matches: (el) => el === root || live,
-      subtree: true,
-    });
+    const data = new BlinklikeHTMLCollectionData(
+      root,
+      new CollectionRule({
+        matches: (el) => el === root || live,
+        subtree: true,
+      }),
+    );
     const els = flat(root, 8);
 
     expect(data.item(5)).toBe(els[5]);

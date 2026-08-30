@@ -23,6 +23,7 @@ export class BlinklikeHTMLCollectionData<
   E extends Element = Element,
 > implements CollectionCache {
   protected root_: Element;
+  protected rule_: CollectionRule;
 
   protected itemsCache_: IndexedItemsCache<E>;
   protected namedCache_: NamedItemsCache<E>;
@@ -36,6 +37,7 @@ export class BlinklikeHTMLCollectionData<
    */
   constructor(root: Element, rule: CollectionRule) {
     this.root_ = root;
+    this.rule_ = rule;
     this.itemsCache_ = new IndexedItemsCache<E>(root, rule);
     this.namedCache_ = new NamedItemsCache<E>(this.itemsCache_);
 
@@ -47,6 +49,13 @@ export class BlinklikeHTMLCollectionData<
   /** The element this collection is rooted at. */
   public get root(): Element {
     return this.root_;
+  }
+
+  /**
+   * What membership under that root means.
+   */
+  public get rule(): CollectionRule {
+    return this.rule_;
   }
 
   /**

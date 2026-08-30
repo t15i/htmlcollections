@@ -18,6 +18,7 @@ import {
 } from "@t15i/webidl-decorators";
 
 import { BlinklikeHTMLCollectionData } from "./BlinklikeHTMLCollectionData";
+import { CollectionRule } from "./CollectionRule";
 import { BlinklikeHTMLCollectionSupportedPropertyIndices } from "./BlinklikeHTMLCollectionSupportedPropertyIndices";
 import { BlinklikeHTMLCollectionSupportedPropertyNames } from "./BlinklikeHTMLCollectionSupportedPropertyNames";
 
@@ -37,7 +38,10 @@ export interface BlinklikeHTMLCollectionInternals<E extends Element = Element> {
  */
 @Exposed("Window")
 @Interface("HTMLCollection")
-@Constructor([Argument(InterfaceType(BlinklikeHTMLCollectionData), "data")])
+@Constructor([
+  Argument(InterfaceType(Element), "root"),
+  Argument(InterfaceType(CollectionRule), "rule"),
+])
 export class BlinklikeHTMLCollection<
   E extends Element = Element,
 > implements HTMLCollectionOf<E> {
@@ -48,7 +52,13 @@ export class BlinklikeHTMLCollection<
 
   [key: number]: E;
 
-  constructor(data: BlinklikeHTMLCollectionData<E>) {
+  /**
+   * @param root - The element to collect under. It is never a member itself.
+   * @param rule - What membership under that root means.
+   */
+  constructor(root: Element, rule: CollectionRule) {
+    const data = new BlinklikeHTMLCollectionData<E>(root, rule);
+
     this[Internals] = {
       data: data,
       supportedPropertyIndices:

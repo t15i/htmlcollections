@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
-import { BlinklikeHTMLCollectionData } from "lib";
+import { BlinklikeHTMLCollectionData } from "lib/blink/BlinklikeHTMLCollectionData";
+
+import { CollectionRule } from "lib";
 
 import {
   append,
@@ -93,9 +95,11 @@ describe("Structural mutations through BlinklikeHTMLCollectionData", () => {
   });
 
   test("children that do not match the rule are excluded", () => {
-    const s2 = setup({
-      matches: (el) => el.localName === "b",
-    });
+    const s2 = setup(
+      new CollectionRule({
+        matches: (el) => el.localName === "b",
+      }),
+    );
     const hit = makeHTML("b");
     s2.root.append(makeHTML("i"), hit, makeHTML("i"));
     expect([...s2.coll]).toEqual([hit]);
@@ -103,19 +107,23 @@ describe("Structural mutations through BlinklikeHTMLCollectionData", () => {
   });
 
   test("descendants scope reaches through wrappers, in tree order", () => {
-    const s2 = setup({
-      matches: (el) => el.localName === "b",
-      subtree: true,
-    });
+    const s2 = setup(
+      new CollectionRule({
+        matches: (el) => el.localName === "b",
+        subtree: true,
+      }),
+    );
     s2.root.innerHTML = "<b id=1></b><i><b id=2></b></i><b id=3></b>";
     expect([...s2.coll].map((el) => el.id)).toEqual(["1", "2", "3"]);
     teardown(s2);
   });
 
   test("children scope ignores matches below the root's children", () => {
-    const s2 = setup({
-      matches: (el) => el.localName === "b",
-    });
+    const s2 = setup(
+      new CollectionRule({
+        matches: (el) => el.localName === "b",
+      }),
+    );
     s2.root.innerHTML = "<b id=1></b><i><b id=2></b></i>";
     expect([...s2.coll].map((el) => el.id)).toEqual(["1"]);
     teardown(s2);
@@ -125,9 +133,12 @@ describe("Structural mutations through BlinklikeHTMLCollectionData", () => {
     let admit = false;
     const root = document.createElement("div");
     document.body.append(root);
-    const data = new BlinklikeHTMLCollectionData(root, {
-      matches: () => admit,
-    });
+    const data = new BlinklikeHTMLCollectionData(
+      root,
+      new CollectionRule({
+        matches: () => admit,
+      }),
+    );
     root.append(makeHTML(), makeHTML());
 
     expect(data.length).toBe(0);
