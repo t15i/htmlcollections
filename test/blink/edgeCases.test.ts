@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
+import { CollectionRule } from "lib";
+
 import {
   append,
   makeHTML,
@@ -67,9 +69,11 @@ describe("Edge cases", () => {
   });
 
   test("a child the rule rejects is not a member", () => {
-    const s2 = setup({
-      matches: (el) => el.localName !== "b",
-    });
+    const s2 = setup(
+      new CollectionRule({
+        matches: (el) => el.localName !== "b",
+      }),
+    );
     const stranger = makeHTML("b", { id: "ghost" });
     s2.root.append(makeHTML(), stranger);
 

@@ -34,17 +34,14 @@ A collection is a **root** plus a **rule**. Nothing else. Membership is a
 function of the tree, recomputed whenever the tree changes underneath:
 
 ```ts
-import {
-  BlinklikeHTMLCollection,
-  BlinklikeHTMLCollectionData,
-} from "@t15i/htmlcollections";
+import { BlinklikeHTMLCollection, CollectionRule } from "@t15i/htmlcollections";
 
 const root = document.querySelector("#list")!;
 
-const data = new BlinklikeHTMLCollectionData(root, {
-  matches: (el) => el.localName === "custom-item",
-});
-const items = new BlinklikeHTMLCollection(data);
+const items = new BlinklikeHTMLCollection(
+  root,
+  new CollectionRule({ matches: (el) => el.localName === "custom-item" }),
+);
 
 items.length; // 3
 items.item(0); // <custom-item id="a">
@@ -60,16 +57,14 @@ are found by the first read.
 ### Wiring it into a Web Component
 
 ```ts
-import {
-  BlinklikeHTMLCollection,
-  BlinklikeHTMLCollectionData,
-} from "@t15i/htmlcollections";
+import { BlinklikeHTMLCollection, CollectionRule } from "@t15i/htmlcollections";
+
+const ITEMS = new CollectionRule({
+  matches: (el) => el.localName === "custom-item",
+});
 
 class HTMLCustomListElement extends HTMLElement {
-  #data = new BlinklikeHTMLCollectionData(this, {
-    matches: (el) => el.localName === "custom-item",
-  });
-  #items = new BlinklikeHTMLCollection(this.#data);
+  #items = new BlinklikeHTMLCollection(this, ITEMS);
 
   get items(): HTMLCollection {
     return this.#items;
@@ -94,7 +89,15 @@ list.items.namedItem("b"); // <custom-item id="b">
 ## The rule
 
 ```ts
-interface CollectionRule {
+class CollectionRule {
+  constructor(options: CollectionRuleOptions);
+
+  matches(element: Element): boolean;
+  readonly subtree: boolean;
+  readonly attributes: readonly string[];
+}
+
+interface CollectionRuleOptions {
   matches(element: Element): boolean;
   subtree?: boolean;
   attributes?: readonly string[];
@@ -131,7 +134,7 @@ Where candidates come from. `false` (the default, as in
 well.
 
 ```ts
-new BlinklikeHTMLCollectionData(form, {
+new CollectionRule({
   matches: (el) => el.localName === "input",
   subtree: true,
 });
@@ -144,7 +147,7 @@ the declaration the observer configuration is built from, so a rule that reads
 an attribute it does not declare goes silently stale:
 
 ```ts
-new BlinklikeHTMLCollectionData(select, {
+new CollectionRule({
   matches: (el) => el.localName === "option" && !el.hasAttribute("disabled"),
   attributes: ["disabled"], // ← without this, toggling `disabled` is not seen
 });
@@ -191,7 +194,7 @@ Membership that no DOM mutation can express — an internal flag, a class that
 only just became defined — has to be signalled by hand:
 
 ```ts
-data.invalidate();
+items[Internals].data.invalidate();
 ```
 
 The canonical case is a `<select>`: an option's selectedness is an internal
@@ -200,21 +203,22 @@ changes when it flips.
 
 ## Beyond `HTMLCollection`
 
-`BlinklikeHTMLCollection` exposes exactly the WebIDL interface. The backing
-`BlinklikeHTMLCollectionData` exposes more:
+`BlinklikeHTMLCollection` exposes exactly the WebIDL interface. The store it
+keeps behind that - reachable as `collection[Internals].data`, and never built
+by hand - exposes more:
 
-| member                                        |                                         |
-| --------------------------------------------- | --------------------------------------- |
-| `root`                                        | the element the collection is rooted at |
-| `length`, `item(i)`, `namedItem(name)`        | the `HTMLCollection` surface            |
-| `hasItem(i)`, `hasNamedItem(name)`            | supported-property predicates           |
-| `first`, `last`                               | the ends of the collection              |
-| `isEmpty`, `hasExactlyOneItem`                | cheap answers that avoid a full walk    |
-| `indexOf(el)`, `contains(el)`                 | O(1) position and membership            |
-| `next(el)`, `previous(el)`                    | O(1) neighbours                         |
-| `forward(el)`, `backward(el)`                 | iterate from `el` to either end         |
-| `indices()`, `names()`, `[Symbol.iterator]()` | iteration                               |
-| `invalidate()`, `invalidateNames()`           | drop caches by hand                     |
+| member                                        |                                      |
+| --------------------------------------------- | ------------------------------------ |
+| `root`, `rule`                                | what the collection was built from   |
+| `length`, `item(i)`, `namedItem(name)`        | the `HTMLCollection` surface         |
+| `hasItem(i)`, `hasNamedItem(name)`            | supported-property predicates        |
+| `first`, `last`                               | the ends of the collection           |
+| `isEmpty`, `hasExactlyOneItem`                | cheap answers that avoid a full walk |
+| `indexOf(el)`, `contains(el)`                 | O(1) position and membership         |
+| `next(el)`, `previous(el)`                    | O(1) neighbours                      |
+| `forward(el)`, `backward(el)`                 | iterate from `el` to either end      |
+| `indices()`, `names()`, `[Symbol.iterator]()` | iteration                            |
+| `invalidate()`, `invalidateNames()`           | drop caches by hand                  |
 
 Cost, in short: `item(i)` on a cold cache walks to `i` and stops; reading
 `length` walks once and remembers every member, after which indexed access is
@@ -223,8 +227,8 @@ vector; `last`, `indexOf`, `contains` and the neighbour operations do.
 
 ## Extending
 
-Every part is exported, so you can plug the backing store and the
-supported-property views into your own class:
+A collection is built from a root and a rule, and keeps the rest to itself, so
+a derived collection passes the two along and adds what it needs:
 
 ```ts
 import {
@@ -238,7 +242,7 @@ import {
 import { InterfaceType, UnsignedLong } from "@t15i/webidl-types";
 import {
   BlinklikeHTMLCollection,
-  BlinklikeHTMLCollectionData,
+  CollectionRule,
   type BlinklikeHTMLCollectionInternals,
 } from "@t15i/htmlcollections";
 
@@ -248,13 +252,16 @@ interface DerivedHTMLCollectionInternals extends BlinklikeHTMLCollectionInternal
 
 @Exposed("Window")
 @Interface
-@Constructor([Argument(InterfaceType(BlinklikeHTMLCollectionData), "data")])
+@Constructor([
+  Argument(InterfaceType(Element), "root"),
+  Argument(InterfaceType(CollectionRule), "rule"),
+])
 class DerivedHTMLCollection extends BlinklikeHTMLCollection {
   /** @internal */
   declare [Internals]: DerivedHTMLCollectionInternals;
 
-  constructor(data: BlinklikeHTMLCollectionData) {
-    super(data);
+  constructor(root: Element, rule: CollectionRule) {
+    super(root, rule);
     // this[Internals] ...
   }
 

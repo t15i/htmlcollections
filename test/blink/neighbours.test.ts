@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
-import { BlinklikeHTMLCollectionData } from "lib";
+import { BlinklikeHTMLCollectionData } from "lib/blink/BlinklikeHTMLCollectionData";
 
 import { makeHTML, populate, setup, teardown, type Setup } from "./utils";
+import { CollectionRule } from "lib";
 
 describe("Neighbour traversal", () => {
   let s: Setup;
@@ -48,12 +49,15 @@ describe("Neighbour traversal", () => {
     const calls = { n: 0 };
     const root = document.createElement("div");
     document.body.append(root);
-    const data = new BlinklikeHTMLCollectionData(root, {
-      matches: () => {
-        calls.n++;
-        return true;
-      },
-    });
+    const data = new BlinklikeHTMLCollectionData(
+      root,
+      new CollectionRule({
+        matches: () => {
+          calls.n++;
+          return true;
+        },
+      }),
+    );
     for (let i = 0; i < 50; i++) root.append(makeHTML());
 
     // The rule is consulted once, not fifty times: no vector is built.

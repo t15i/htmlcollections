@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
+import { CollectionRule } from "lib";
+
 import {
   append,
   makeHTML,
@@ -59,9 +61,11 @@ describe("Live observation", () => {
   });
 
   test("mutations on a child the rule rejects are ignored", () => {
-    const s2 = setup({
-      matches: (el) => el.localName !== "b",
-    });
+    const s2 = setup(
+      new CollectionRule({
+        matches: (el) => el.localName !== "b",
+      }),
+    );
     const member = makeHTML("div", { id: "m" });
     const stranger = makeHTML("b", { id: "s" });
     s2.root.append(member, stranger);

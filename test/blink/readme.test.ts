@@ -12,9 +12,10 @@ import { expect, test } from "vitest";
 
 import {
   BlinklikeHTMLCollection,
-  BlinklikeHTMLCollectionData,
   type BlinklikeHTMLCollectionInternals,
 } from "lib";
+import { BlinklikeHTMLCollectionData } from "lib/blink/BlinklikeHTMLCollectionData";
+import { CollectionRule } from "lib";
 
 test("README: root plus rule", () => {
   const root = document.createElement("div");
@@ -23,10 +24,10 @@ test("README: root plus rule", () => {
     `<custom-item id="c"></custom-item><span></span>`;
   document.body.append(root);
 
-  const data = new BlinklikeHTMLCollectionData(root, {
-    matches: (el) => el.localName === "custom-item",
-  });
-  const items = new BlinklikeHTMLCollection(data);
+  const items = new BlinklikeHTMLCollection(
+    root,
+    new CollectionRule({ matches: (el) => el.localName === "custom-item" }),
+  );
 
   expect(items.length).toBe(3);
   expect(items.item(0)).toBe(root.firstElementChild);
@@ -48,11 +49,12 @@ test("README: root plus rule", () => {
  * is run here in the shape it is printed in.
  */
 test("README: web component wiring", () => {
+  const ITEMS = new CollectionRule({
+    matches: (el) => el.localName === "readme-item",
+  });
+
   class HTMLCustomListElement extends HTMLElement {
-    #data = new BlinklikeHTMLCollectionData(this, {
-      matches: (el) => el.localName === "readme-item",
-    });
-    #items = new BlinklikeHTMLCollection(this.#data);
+    #items = new BlinklikeHTMLCollection(this, ITEMS);
 
     get items(): HTMLCollection {
       return this.#items as unknown as HTMLCollection;
@@ -78,10 +80,14 @@ test("README: web component wiring", () => {
 test("README: attributes declaration", () => {
   const select = document.createElement("div");
   document.body.append(select);
-  const data = new BlinklikeHTMLCollectionData(select, {
-    matches: (el) => el.localName === "option" && !el.hasAttribute("disabled"),
-    attributes: ["disabled"],
-  });
+  const data = new BlinklikeHTMLCollectionData(
+    select,
+    new CollectionRule({
+      matches: (el) =>
+        el.localName === "option" && !el.hasAttribute("disabled"),
+      attributes: ["disabled"],
+    }),
+  );
 
   const a = document.createElement("option");
   const b = document.createElement("option");
@@ -99,10 +105,13 @@ test("README: subtree", () => {
   form.innerHTML = `<fieldset><input></fieldset><input>`;
   document.body.append(form);
 
-  const data = new BlinklikeHTMLCollectionData(form, {
-    matches: (el) => el.localName === "input",
-    subtree: true,
-  });
+  const data = new BlinklikeHTMLCollectionData(
+    form,
+    new CollectionRule({
+      matches: (el) => el.localName === "input",
+      subtree: true,
+    }),
+  );
   expect(data.length).toBe(2);
 
   form.remove();
@@ -111,10 +120,10 @@ test("README: subtree", () => {
 test("README: live named lookups", () => {
   const list = document.createElement("div");
   document.body.append(list);
-  const data = new BlinklikeHTMLCollectionData(list, {
-    matches: (el) => el.localName === "custom-item",
-  });
-  const items = new BlinklikeHTMLCollection(data);
+  const items = new BlinklikeHTMLCollection(
+    list,
+    new CollectionRule({ matches: (el) => el.localName === "custom-item" }),
+  );
 
   const el = document.createElement("custom-item");
   el.id = "hero";
@@ -138,13 +147,16 @@ interface DerivedHTMLCollectionInternals extends BlinklikeHTMLCollectionInternal
 
 @Exposed("Window")
 @Interface
-@Constructor([Argument(InterfaceType(BlinklikeHTMLCollectionData), "data")])
+@Constructor([
+  Argument(InterfaceType(Element), "root"),
+  Argument(InterfaceType(CollectionRule), "rule"),
+])
 class DerivedHTMLCollection extends BlinklikeHTMLCollection {
   /** @internal */
   declare [Internals]: DerivedHTMLCollectionInternals;
 
-  constructor(data: BlinklikeHTMLCollectionData) {
-    super(data);
+  constructor(root: Element, rule: CollectionRule) {
+    super(root, rule);
     this[Internals].label = "derived";
   }
 
@@ -164,10 +176,10 @@ test("README: extending", () => {
   root.innerHTML = `<custom-item></custom-item><custom-item></custom-item>`;
   document.body.append(root);
 
-  const data = new BlinklikeHTMLCollectionData(root, {
-    matches: (el) => el.localName === "custom-item",
-  });
-  const items = new DerivedHTMLCollection(data);
+  const items = new DerivedHTMLCollection(
+    root,
+    new CollectionRule({ matches: (el) => el.localName === "custom-item" }),
+  );
 
   expect(items.length).toBe(2);
   expect(items.item(0)).toBe(root.firstElementChild);

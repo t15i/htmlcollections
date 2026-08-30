@@ -1,6 +1,9 @@
 import { describe, expect, test } from "vitest";
 
-import { BlinklikeHTMLCollectionData, CollectionCacheObserver } from "lib";
+import { BlinklikeHTMLCollectionData } from "lib/blink/BlinklikeHTMLCollectionData";
+import { CollectionCacheObserver } from "lib/blink/CollectionCacheObserver";
+
+import { CollectionRule } from "lib";
 
 import { makeHTML } from "./utils";
 
@@ -10,13 +13,13 @@ function counting(
   attributes?: readonly string[],
 ) {
   const calls = { n: 0 };
-  const rule = {
+  const rule = new CollectionRule({
     matches: (el: Element) => {
       calls.n++;
       return matches(el);
     },
     ...(attributes === undefined ? {} : { attributes }),
-  };
+  });
   return { rule, calls };
 }
 
@@ -129,10 +132,13 @@ describe("Cache invalidation", () => {
 
   test("one collection's declared attribute leaves another's caches alone", () => {
     const root = rooted();
-    const declaring = new BlinklikeHTMLCollectionData(root, {
-      matches: (el) => el.hasAttribute("on"),
-      attributes: ["on"],
-    });
+    const declaring = new BlinklikeHTMLCollectionData(
+      root,
+      new CollectionRule({
+        matches: (el) => el.hasAttribute("on"),
+        attributes: ["on"],
+      }),
+    );
     const plain = counting(() => true);
     const bystander = new BlinklikeHTMLCollectionData(root, plain.rule);
 
@@ -156,13 +162,19 @@ describe("Cache invalidation", () => {
 
   test("both collections of a root share one observer", () => {
     const root = rooted();
-    const first = new BlinklikeHTMLCollectionData(root, {
-      matches: () => true,
-    });
-    const second = new BlinklikeHTMLCollectionData(root, {
-      matches: () => true,
-      attributes: ["on"],
-    });
+    const first = new BlinklikeHTMLCollectionData(
+      root,
+      new CollectionRule({
+        matches: () => true,
+      }),
+    );
+    const second = new BlinklikeHTMLCollectionData(
+      root,
+      new CollectionRule({
+        matches: () => true,
+        attributes: ["on"],
+      }),
+    );
 
     // Registering anything else on the same root hands back the very same
     // observer the two collections above are already using.
@@ -180,9 +192,12 @@ describe("Cache invalidation", () => {
 
   test("a mutation delivered to the callback is not lost", async () => {
     const root = rooted();
-    const data = new BlinklikeHTMLCollectionData(root, {
-      matches: () => true,
-    });
+    const data = new BlinklikeHTMLCollectionData(
+      root,
+      new CollectionRule({
+        matches: () => true,
+      }),
+    );
 
     root.append(makeHTML());
     expect(data.length).toBe(1);
@@ -222,10 +237,13 @@ describe("Cache invalidation", () => {
     const root = rooted();
     const { rule, calls } = counting(() => true);
     const children = new BlinklikeHTMLCollectionData(root, rule);
-    const descendants = new BlinklikeHTMLCollectionData(root, {
-      matches: () => true,
-      subtree: true,
-    });
+    const descendants = new BlinklikeHTMLCollectionData(
+      root,
+      new CollectionRule({
+        matches: () => true,
+        subtree: true,
+      }),
+    );
 
     const member = makeHTML();
     root.append(member);
@@ -248,10 +266,13 @@ describe("Cache invalidation", () => {
 
   test("a descendants-scoped collection sees mutations inside members", () => {
     const root = rooted();
-    const data = new BlinklikeHTMLCollectionData(root, {
-      matches: () => true,
-      subtree: true,
-    });
+    const data = new BlinklikeHTMLCollectionData(
+      root,
+      new CollectionRule({
+        matches: () => true,
+        subtree: true,
+      }),
+    );
 
     const member = makeHTML();
     root.append(member);
@@ -267,9 +288,12 @@ describe("Cache invalidation", () => {
     const root = rooted();
     root.innerHTML = "<i></i><i></i><i></i>";
 
-    const data = new BlinklikeHTMLCollectionData(root, {
-      matches: () => true,
-    });
+    const data = new BlinklikeHTMLCollectionData(
+      root,
+      new CollectionRule({
+        matches: () => true,
+      }),
+    );
 
     expect(data.length).toBe(3);
 

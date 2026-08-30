@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import { BlinklikeHTMLCollection } from "lib";
 
-import { populate, setup, teardown, type Setup } from "./utils";
+import { ALL_CHILDREN, populate, setup, teardown, type Setup } from "./utils";
 
 describe("Construction", () => {
   let s: Setup;
@@ -13,8 +13,15 @@ describe("Construction", () => {
     teardown(s);
   });
 
-  test("constructs from a BlinklikeHTMLCollectionData instance", () => {
+  test("constructs from a root and a rule", () => {
     expect(s.coll).toBeInstanceOf(BlinklikeHTMLCollection);
+  });
+
+  test("keeps the root and the rule it was built from", () => {
+    // What a walk that acts on the members rather than reading them needs:
+    // the same two things the collection itself was built from.
+    expect(s.data.root).toBe(s.root);
+    expect(s.data.rule).toBe(ALL_CHILDREN);
   });
 
   test("empty backing → length === 0", () => {
@@ -42,7 +49,7 @@ describe("Construction", () => {
     expect(Array.from(s.coll).length).toBe(0);
   });
 
-  test("two instances over independent data do not share state", () => {
+  test("two instances over independent roots do not share state", () => {
     const t = setup();
     populate(s, 1);
     expect(s.coll.length).toBe(1);
@@ -50,8 +57,11 @@ describe("Construction", () => {
     teardown(t);
   });
 
-  test("two instances over the same data observe the same view", () => {
-    const second = new BlinklikeHTMLCollection(s.data);
+  test("two instances over the same root and rule observe the same view", () => {
+    // Each keeps a store of its own now - a collection is built from a root
+    // and a rule and makes the rest itself - so what they agree on is the
+    // tree, which is the only thing membership was ever read from.
+    const second = new BlinklikeHTMLCollection(s.root, ALL_CHILDREN);
     populate(s, 3);
     expect(second.length).toBe(s.coll.length);
     expect(second.item(0)).toBe(s.coll.item(0));

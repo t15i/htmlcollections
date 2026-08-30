@@ -1,15 +1,12 @@
-import {
-  BlinklikeHTMLCollection,
-  BlinklikeHTMLCollectionData,
-  type CollectionRule,
-} from "lib";
+import { Internals } from "@t15i/webidl-decorators";
+
+import { BlinklikeHTMLCollection, CollectionRule } from "lib";
+import { type BlinklikeHTMLCollectionData } from "lib/blink/BlinklikeHTMLCollectionData";
 
 export const SVG_NS = "http://www.w3.org/2000/svg";
 
 /** Every element child of the root is a member. */
-export const ALL_CHILDREN: CollectionRule = {
-  matches: () => true,
-};
+export const ALL_CHILDREN = new CollectionRule({ matches: () => true });
 
 export interface Setup {
   root: HTMLElement;
@@ -20,9 +17,11 @@ export interface Setup {
 export function setup(rule: CollectionRule = ALL_CHILDREN): Setup {
   const root = document.createElement("div");
   document.body.appendChild(root);
-  const data = new BlinklikeHTMLCollectionData(root, rule);
-  const coll = new BlinklikeHTMLCollection(data);
-  return { root, data, coll };
+  const coll = new BlinklikeHTMLCollection(root, rule);
+
+  // The store is the collection's own, and this is how a holder of the
+  // collection reaches it - the same way the walk primitives do.
+  return { root, data: coll[Internals].data, coll };
 }
 
 export function teardown(s: Setup): void {
